@@ -10,8 +10,7 @@ Luckieverse Flutter 플러그인 배포 패키지입니다.
 dependencies:
   luckieverse_flutter:
     git:
-      url: <THIS_REPO_URL>
-      ref: v1.0.0
+      url: https://github.com/thyadang-techlabs/luckieverse-flutter-release.git
 ```
 
 그런 다음 실행:
