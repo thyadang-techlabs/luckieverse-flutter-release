@@ -22,7 +22,7 @@ flutter pub get
 
 ### iOS 추가 설정
 
-`ios/Podfile`에 Luckieverse CocoaPod 소스를 추가해야 합니다.
+iOS 디렉토리에서 `pod install`을 진행하십시오.
 
 ### Android 추가 설정
 
