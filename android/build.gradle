@@ -1,0 +1,48 @@
+plugins {
+    id "com.android.library"
+    id "org.jetbrains.kotlin.android"
+}
+
+group = "com.luckieverse.luckieverse_flutter"
+version = "1.0"
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+android {
+    namespace "com.luckieverse.luckieverse_flutter"
+    compileSdk = 34
+
+    defaultConfig {
+        minSdk = 23
+        targetSdk = 34
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildToolsVersion = "33.0.2"
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+    
+    // Exclude AAR files from packaging to avoid build issues
+    packagingOptions {
+        exclude '**/*.aar'
+    }
+}
+
+dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    // Include local JAR file for compilation and runtime
+    implementation files('libs/luckieverse.jar')
+}
