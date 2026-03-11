@@ -9,6 +9,7 @@ version = "1.0"
 repositories {
     google()
     mavenCentral()
+    maven { url "https://bidmad-sdk.s3.amazonaws.com/" }
 }
 
 android {
@@ -45,4 +46,6 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
     // Include local JAR file for compilation and runtime
     implementation files('libs/luckieverse.jar')
+    // Bidmad SDK - required by luckieverse.jar AdManager
+    implementation 'com.adop.sdk:bidmad-androidx:3.27.0'
 }

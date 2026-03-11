@@ -10,7 +10,8 @@ Luckieverse Flutter 플러그인 배포 패키지입니다.
 dependencies:
   luckieverse_flutter:
     git:
-      url: https://github.com/thyadang-techlabs/luckieverse-flutter-release.git
+      url: <THIS_REPO_URL>
+      ref: v1.0.1
 ```
 
 그런 다음 실행:
@@ -19,13 +20,10 @@ dependencies:
 flutter pub get
 ```
 
-### iOS 추가 설정
+### 플랫폼별 설정
 
-iOS 디렉토리에서 `pod install`을 진행하십시오.
-
-### Android 추가 설정
-
-별도 설정 없이 사용 가능합니다. AAR이 패키지에 포함되어 있습니다.
+iOS, Android 모두 별도 설정 없이 사용 가능합니다.
+네이티브 의존성은 자동으로 해결됩니다.
 
 ## 사용법
 
@@ -44,4 +42,4 @@ await LuckieverseFlutter.openLuckieverseMain();
 
 ## 버전
 
-현재 버전: **v1.0.0**
+현재 버전: **v1.0.1**
