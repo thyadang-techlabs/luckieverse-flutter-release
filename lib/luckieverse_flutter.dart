@@ -209,6 +209,13 @@ class LuckieverseFlutter {
     _log('[openNewYearFortune] 완료');
   }
 
+  static Future<void> showRVWithDynamicZoneID(String zoneID) async {
+    _log('[showRVWithDynamicZoneID] zoneID=$zoneID, isInitialized=$_isInitializeCompleted');
+    _checkInitialization('showRVWithDynamicZoneID');
+    await _invoke('showRVWithDynamicZoneID', {'zoneID': zoneID});
+    _log('[showRVWithDynamicZoneID] 완료');
+  }
+
   static Future<void> _invoke(String method, [Map<String, dynamic>? arguments]) async {
     _log('[_invoke] method=$method, arguments=$arguments');
     try {

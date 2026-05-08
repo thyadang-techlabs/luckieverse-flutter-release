@@ -330,6 +330,21 @@ public class SwiftLuckieverseFlutterPlugin: NSObject, FlutterPlugin, FlutterStre
       result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
       #endif
 
+    case "showRVWithDynamicZoneID":
+      log("[showRVWithDynamicZoneID] 호출됨, isInitializeCalled=\(isInitializeCalled)")
+      guard let args = call.arguments as? [String: Any], let zoneID = args["zoneID"] as? String else {
+        log("[ERROR] showRVWithDynamicZoneID: Missing zoneID")
+        result(FlutterError(code: "bad_args", message: "Missing zoneID", details: nil)); return
+      }
+      log("[showRVWithDynamicZoneID] zoneID: \(zoneID)")
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.showRVWithDynamicZoneID(zoneID)
+      log("[showRVWithDynamicZoneID] 성공!")
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
     default:
       log("[WARNING] 알 수 없는 메서드: \(call.method)")
       result(FlutterMethodNotImplemented)

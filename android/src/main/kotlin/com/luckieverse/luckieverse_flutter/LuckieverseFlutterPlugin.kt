@@ -275,13 +275,13 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
       "openNewYearFortune" -> {
         Log.d(TAG, "[openNewYearFortune] 호출됨")
         Log.d(TAG, "[openNewYearFortune] isInitializeCalled=$isInitializeCalled")
-        
+
         val activity = activityBinding?.activity
         if (activity == null) {
           Log.e(TAG, "[openNewYearFortune] 실패: Activity가 null입니다!")
           return result.error("no_activity", "Activity is not attached", null)
         }
-        
+
         try {
           Luckieverse.instance().openNewYearFortune(activity)
           Log.d(TAG, "[openNewYearFortune] 성공!")
@@ -290,6 +290,23 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
           Log.e(TAG, "[openNewYearFortune] 예외 발생: ${e.message}")
           Log.e(TAG, "[openNewYearFortune] 스택트레이스:", e)
           result.error("open_error", e.message, e.stackTraceToString())
+        }
+      }
+      "showRVWithDynamicZoneID" -> {
+        Log.d(TAG, "[showRVWithDynamicZoneID] 호출됨, isInitializeCalled=$isInitializeCalled")
+        val zoneID = call.argument<String>("zoneID")
+          ?: return result.error("bad_args", "Missing zoneID", null)
+        val activity = activityBinding?.activity
+          ?: return result.error("no_activity", "Activity is not attached", null)
+        Log.d(TAG, "[showRVWithDynamicZoneID] zoneID: $zoneID")
+        try {
+          Luckieverse.instance().showRVWithDynamicZoneID(activity, zoneID)
+          Log.d(TAG, "[showRVWithDynamicZoneID] 성공!")
+          result.success(null)
+        } catch (e: Exception) {
+          Log.e(TAG, "[showRVWithDynamicZoneID] 예외 발생: ${e.message}")
+          Log.e(TAG, "[showRVWithDynamicZoneID] 스택트레이스:", e)
+          result.error("ad_error", e.message, e.stackTraceToString())
         }
       }
       else -> {
