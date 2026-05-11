@@ -11,7 +11,7 @@ dependencies:
   luckieverse_flutter:
     git:
       url: <THIS_REPO_URL>
-      ref: v1.1.6
+      ref: v1.2.0
 ```
 
 그런 다음 실행:
@@ -42,4 +42,4 @@ await LuckieverseFlutter.openLuckieverseMain();
 
 ## 버전
 
-현재 버전: **v1.1.6**
+현재 버전: **v1.2.0**

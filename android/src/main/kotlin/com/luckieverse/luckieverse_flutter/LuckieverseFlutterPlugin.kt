@@ -304,21 +304,41 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
           if (callId != null) {
             Luckieverse.instance().showRVWithDynamicZoneID(
               activity, zoneID,
-              {
+              onLoadFail = {
                 Log.d(TAG, "[showRVWithDynamicZoneID] onLoadFail 콜백 실행됨, callId=$callId")
                 activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onLoadFail") }
               },
-              {
+              onAdComplete = {
                 Log.d(TAG, "[showRVWithDynamicZoneID] onAdComplete 콜백 실행됨, callId=$callId")
                 activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdComplete") }
               },
-              {
+              onAdNoFill = {
                 Log.d(TAG, "[showRVWithDynamicZoneID] onAdNoFill 콜백 실행됨, callId=$callId")
                 activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdNoFill") }
               },
-              {
+              onAdBlockUser = {
                 Log.d(TAG, "[showRVWithDynamicZoneID] onAdBlockUser 콜백 실행됨, callId=$callId")
                 activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdBlockUser") }
+              },
+              onAdLoad = {
+                Log.d(TAG, "[showRVWithDynamicZoneID] onAdLoad 콜백 실행됨, callId=$callId")
+                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdLoad") }
+              },
+              onAdShow = {
+                Log.d(TAG, "[showRVWithDynamicZoneID] onAdShow 콜백 실행됨, callId=$callId")
+                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdShow") }
+              },
+              onAdClick = {
+                Log.d(TAG, "[showRVWithDynamicZoneID] onAdClick 콜백 실행됨, callId=$callId")
+                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdClick") }
+              },
+              onAdSkip = {
+                Log.d(TAG, "[showRVWithDynamicZoneID] onAdSkip 콜백 실행됨, callId=$callId")
+                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdSkip") }
+              },
+              onAdClose = {
+                Log.d(TAG, "[showRVWithDynamicZoneID] onAdClose 콜백 실행됨, callId=$callId")
+                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdClose") }
               }
             )
           } else {

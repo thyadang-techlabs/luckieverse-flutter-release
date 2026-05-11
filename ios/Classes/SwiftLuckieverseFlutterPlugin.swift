@@ -357,6 +357,22 @@ public class SwiftLuckieverseFlutterPlugin: NSObject, FlutterPlugin, FlutterStre
           onAdBlockUser: { [weak self] in
             self?.log("[showRVWithDynamicZoneID] onAdBlockUser 콜백 실행됨, callId=\(callId)")
             DispatchQueue.main.async { self?.eventSink?("rvCallback:\(callId):onAdBlockUser") }
+          },
+          onAdLoad: { [weak self] in
+            self?.log("[showRVWithDynamicZoneID] onAdLoad 콜백 실행됨, callId=\(callId)")
+            DispatchQueue.main.async { self?.eventSink?("rvCallback:\(callId):onAdLoad") }
+          },
+          onAdShow: { [weak self] in
+            self?.log("[showRVWithDynamicZoneID] onAdShow 콜백 실행됨, callId=\(callId)")
+            DispatchQueue.main.async { self?.eventSink?("rvCallback:\(callId):onAdShow") }
+          },
+          onAdSkip: { [weak self] in
+            self?.log("[showRVWithDynamicZoneID] onAdSkip 콜백 실행됨, callId=\(callId)")
+            DispatchQueue.main.async { self?.eventSink?("rvCallback:\(callId):onAdSkip") }
+          },
+          onAdClose: { [weak self] in
+            self?.log("[showRVWithDynamicZoneID] onAdClose 콜백 실행됨, callId=\(callId)")
+            DispatchQueue.main.async { self?.eventSink?("rvCallback:\(callId):onAdClose") }
           }
         )
       } else {

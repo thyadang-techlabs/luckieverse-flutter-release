@@ -226,6 +226,15 @@ class LuckieverseFlutter {
     return 'rv_$nonce';
   }
 
+  /// terminal 콜백: 광고 사이클 종료 신호. 수신 즉시 매핑 제거 + timer 취소.
+  static const _rvTerminalEvents = {
+    'onLoadFail',
+    'onAdComplete',
+    'onAdNoFill',
+    'onAdBlockUser',
+    'onAdClose',
+  };
+
   static void _ensureRvCallbackListener() {
     if (_rvListenerStarted) return;
     _rvListenerStarted = true;
@@ -236,22 +245,78 @@ class LuckieverseFlutter {
         if (parts.length < 3) return;
         final callId = parts[1];
         final type = parts[2];
-        final callbacks = _rvCallbacks.remove(callId);
-        if (callbacks == null) return;
-        callbacks.timer?.cancel();
         _log('[showRVWithDynamicZoneID] 콜백 수신: callId=$callId, type=$type');
+
+        final isTerminal = _rvTerminalEvents.contains(type);
+        final callbacks = isTerminal
+            ? _rvCallbacks.remove(callId)
+            : _rvCallbacks[callId];
+        if (callbacks == null) return;
+        if (isTerminal) callbacks.timer?.cancel();
+
         switch (type) {
           case 'onLoadFail':
-            callbacks.onLoadFail?.call();
+            try {
+              callbacks.onLoadFail?.call();
+            } catch (e, st) {
+              _log('[showRVWithDynamicZoneID] onLoadFail 콜백 예외: $e\n$st');
+            }
             break;
           case 'onAdComplete':
-            callbacks.onAdComplete?.call();
+            try {
+              callbacks.onAdComplete?.call();
+            } catch (e, st) {
+              _log('[showRVWithDynamicZoneID] onAdComplete 콜백 예외: $e\n$st');
+            }
             break;
           case 'onAdNoFill':
-            callbacks.onAdNoFill?.call();
+            try {
+              callbacks.onAdNoFill?.call();
+            } catch (e, st) {
+              _log('[showRVWithDynamicZoneID] onAdNoFill 콜백 예외: $e\n$st');
+            }
             break;
           case 'onAdBlockUser':
-            callbacks.onAdBlockUser?.call();
+            try {
+              callbacks.onAdBlockUser?.call();
+            } catch (e, st) {
+              _log('[showRVWithDynamicZoneID] onAdBlockUser 콜백 예외: $e\n$st');
+            }
+            break;
+          case 'onAdLoad':
+            try {
+              callbacks.onAdLoad?.call();
+            } catch (e, st) {
+              _log('[showRVWithDynamicZoneID] onAdLoad 콜백 예외: $e\n$st');
+            }
+            break;
+          case 'onAdShow':
+            try {
+              callbacks.onAdShow?.call();
+            } catch (e, st) {
+              _log('[showRVWithDynamicZoneID] onAdShow 콜백 예외: $e\n$st');
+            }
+            break;
+          case 'onAdClick':
+            try {
+              callbacks.onAdClick?.call();
+            } catch (e, st) {
+              _log('[showRVWithDynamicZoneID] onAdClick 콜백 예외: $e\n$st');
+            }
+            break;
+          case 'onAdSkip':
+            try {
+              callbacks.onAdSkip?.call();
+            } catch (e, st) {
+              _log('[showRVWithDynamicZoneID] onAdSkip 콜백 예외: $e\n$st');
+            }
+            break;
+          case 'onAdClose':
+            try {
+              callbacks.onAdClose?.call();
+            } catch (e, st) {
+              _log('[showRVWithDynamicZoneID] onAdClose 콜백 예외: $e\n$st');
+            }
             break;
         }
       },
@@ -262,18 +327,41 @@ class LuckieverseFlutter {
     _log('[showRVWithDynamicZoneID] RV 콜백 리스너 시작됨');
   }
 
+  /// RV(보상형 광고)를 동적 zoneID로 표시합니다.
+  ///
+  /// **lifecycle 콜백** (광고 사이클 중 여러 번 호출될 수 있음):
+  /// - [onAdLoad]  : 광고 로드 완료 시 호출.
+  /// - [onAdShow]  : 광고 화면이 표시될 때 호출.
+  /// - [onAdClick] : 사용자가 광고를 클릭할 때 호출.
+  ///                 **iOS 미지원** — BidmadFullscreenAdDelegate가 click 이벤트를
+  ///                 제공하지 않으므로 iOS에서는 절대 호출되지 않습니다.
+  /// - [onAdSkip]  : 사용자가 광고를 건너뛸 때 호출.
+  ///
+  /// **terminal 콜백** (광고 사이클 종료 신호. 호출 후 매핑 자동 정리):
+  /// - [onLoadFail]    : 광고 로드 실패 시 호출.
+  /// - [onAdComplete]  : 보상 조건 달성(광고 완시청) 시 호출.
+  /// - [onAdNoFill]    : 광고 인벤토리 없음 시 호출.
+  /// - [onAdBlockUser] : 광고 차단 사용자 처리 시 호출.
+  /// - [onAdClose]     : 광고 화면이 닫힐 때 호출 (사이클 최종 종료).
   static Future<void> showRVWithDynamicZoneID(
     String zoneID, {
     VoidCallback? onLoadFail,
     VoidCallback? onAdComplete,
     VoidCallback? onAdNoFill,
     VoidCallback? onAdBlockUser,
+    VoidCallback? onAdLoad,
+    VoidCallback? onAdShow,
+    VoidCallback? onAdClick,
+    VoidCallback? onAdSkip,
+    VoidCallback? onAdClose,
   }) async {
     _log('[showRVWithDynamicZoneID] zoneID=$zoneID, isInitialized=$_isInitializeCompleted');
     _checkInitialization('showRVWithDynamicZoneID');
 
     final hasCallbacks = onLoadFail != null || onAdComplete != null ||
-        onAdNoFill != null || onAdBlockUser != null;
+        onAdNoFill != null || onAdBlockUser != null ||
+        onAdLoad != null || onAdShow != null || onAdClick != null ||
+        onAdSkip != null || onAdClose != null;
 
     if (hasCallbacks) {
       _ensureRvCallbackListener();
@@ -283,6 +371,11 @@ class LuckieverseFlutter {
         onAdComplete: onAdComplete,
         onAdNoFill: onAdNoFill,
         onAdBlockUser: onAdBlockUser,
+        onAdLoad: onAdLoad,
+        onAdShow: onAdShow,
+        onAdClick: onAdClick,
+        onAdSkip: onAdSkip,
+        onAdClose: onAdClose,
       );
       entry.timer = Timer(const Duration(minutes: 5), () {
         if (_rvCallbacks.remove(callId) != null) {
@@ -343,6 +436,13 @@ class _RVCallbacks {
   final VoidCallback? onAdComplete;
   final VoidCallback? onAdNoFill;
   final VoidCallback? onAdBlockUser;
+  final VoidCallback? onAdLoad;
+  final VoidCallback? onAdShow;
+  /// iOS 미지원 — BidmadFullscreenAdDelegate가 click 이벤트를 제공하지 않아
+  /// iOS에서는 절대 호출되지 않습니다.
+  final VoidCallback? onAdClick;
+  final VoidCallback? onAdSkip;
+  final VoidCallback? onAdClose;
   Timer? timer;
 
   _RVCallbacks({
@@ -350,5 +450,10 @@ class _RVCallbacks {
     this.onAdComplete,
     this.onAdNoFill,
     this.onAdBlockUser,
+    this.onAdLoad,
+    this.onAdShow,
+    this.onAdClick,
+    this.onAdSkip,
+    this.onAdClose,
   });
 }
