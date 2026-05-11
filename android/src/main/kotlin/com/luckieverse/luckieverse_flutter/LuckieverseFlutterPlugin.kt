@@ -298,9 +298,32 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
           ?: return result.error("bad_args", "Missing zoneID", null)
         val activity = activityBinding?.activity
           ?: return result.error("no_activity", "Activity is not attached", null)
-        Log.d(TAG, "[showRVWithDynamicZoneID] zoneID: $zoneID")
+        val callId = call.argument<String>("callId")
+        Log.d(TAG, "[showRVWithDynamicZoneID] zoneID: $zoneID, callId: $callId")
         try {
-          Luckieverse.instance().showRVWithDynamicZoneID(activity, zoneID)
+          if (callId != null) {
+            Luckieverse.instance().showRVWithDynamicZoneID(
+              activity, zoneID,
+              {
+                Log.d(TAG, "[showRVWithDynamicZoneID] onLoadFail 콜백 실행됨, callId=$callId")
+                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onLoadFail") }
+              },
+              {
+                Log.d(TAG, "[showRVWithDynamicZoneID] onAdComplete 콜백 실행됨, callId=$callId")
+                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdComplete") }
+              },
+              {
+                Log.d(TAG, "[showRVWithDynamicZoneID] onAdNoFill 콜백 실행됨, callId=$callId")
+                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdNoFill") }
+              },
+              {
+                Log.d(TAG, "[showRVWithDynamicZoneID] onAdBlockUser 콜백 실행됨, callId=$callId")
+                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdBlockUser") }
+              }
+            )
+          } else {
+            Luckieverse.instance().showRVWithDynamicZoneID(activity, zoneID)
+          }
           Log.d(TAG, "[showRVWithDynamicZoneID] 성공!")
           result.success(null)
         } catch (e: Exception) {

@@ -1,6 +1,8 @@
 library luckieverse_flutter;
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -13,7 +15,10 @@ class LuckieverseFlutter {
   static DateTime? _initializeCallTime;
   static bool _isInitializeCompleted = false;
 
-  static Stream<String> get events => _eventChannel.receiveBroadcastStream().cast<String>();
+  static Stream<String> get events => _eventChannel
+      .receiveBroadcastStream()
+      .cast<String>()
+      .where((event) => !event.startsWith('rvCallback:'));
   
   /// 초기화 여부 확인
   static bool get isInitialized => _isInitializeCompleted;
@@ -209,10 +214,87 @@ class LuckieverseFlutter {
     _log('[openNewYearFortune] 완료');
   }
 
-  static Future<void> showRVWithDynamicZoneID(String zoneID) async {
+  // RV 콜백 관련 상태
+  static final Map<String, _RVCallbacks> _rvCallbacks = {};
+  static final Random _secureRandom = Random.secure();
+  static bool _rvListenerStarted = false;
+  static StreamSubscription<String>? _rvCallbackSubscription;
+
+  static String _generateCallId() {
+    final bytes = List<int>.generate(16, (_) => _secureRandom.nextInt(256));
+    final nonce = base64Url.encode(bytes).replaceAll('=', '').replaceAll(':', '_');
+    return 'rv_$nonce';
+  }
+
+  static void _ensureRvCallbackListener() {
+    if (_rvListenerStarted) return;
+    _rvListenerStarted = true;
+    _rvCallbackSubscription = _eventChannel.receiveBroadcastStream().cast<String>().listen(
+      (event) {
+        if (!event.startsWith('rvCallback:')) return;
+        final parts = event.split(':');
+        if (parts.length < 3) return;
+        final callId = parts[1];
+        final type = parts[2];
+        final callbacks = _rvCallbacks.remove(callId);
+        if (callbacks == null) return;
+        callbacks.timer?.cancel();
+        _log('[showRVWithDynamicZoneID] 콜백 수신: callId=$callId, type=$type');
+        switch (type) {
+          case 'onLoadFail':
+            callbacks.onLoadFail?.call();
+            break;
+          case 'onAdComplete':
+            callbacks.onAdComplete?.call();
+            break;
+          case 'onAdNoFill':
+            callbacks.onAdNoFill?.call();
+            break;
+          case 'onAdBlockUser':
+            callbacks.onAdBlockUser?.call();
+            break;
+        }
+      },
+      onError: (error) {
+        _log('[showRVWithDynamicZoneID] EventChannel 오류: $error');
+      },
+    );
+    _log('[showRVWithDynamicZoneID] RV 콜백 리스너 시작됨');
+  }
+
+  static Future<void> showRVWithDynamicZoneID(
+    String zoneID, {
+    VoidCallback? onLoadFail,
+    VoidCallback? onAdComplete,
+    VoidCallback? onAdNoFill,
+    VoidCallback? onAdBlockUser,
+  }) async {
     _log('[showRVWithDynamicZoneID] zoneID=$zoneID, isInitialized=$_isInitializeCompleted');
     _checkInitialization('showRVWithDynamicZoneID');
-    await _invoke('showRVWithDynamicZoneID', {'zoneID': zoneID});
+
+    final hasCallbacks = onLoadFail != null || onAdComplete != null ||
+        onAdNoFill != null || onAdBlockUser != null;
+
+    if (hasCallbacks) {
+      _ensureRvCallbackListener();
+      final callId = _generateCallId();
+      final entry = _RVCallbacks(
+        onLoadFail: onLoadFail,
+        onAdComplete: onAdComplete,
+        onAdNoFill: onAdNoFill,
+        onAdBlockUser: onAdBlockUser,
+      );
+      entry.timer = Timer(const Duration(minutes: 5), () {
+        if (_rvCallbacks.remove(callId) != null) {
+          _log('[showRVWithDynamicZoneID] callId=$callId TTL 만료로 정리됨');
+        }
+      });
+      _rvCallbacks[callId] = entry;
+      _log('[showRVWithDynamicZoneID] callId=$callId 생성됨');
+      await _invoke('showRVWithDynamicZoneID', {'zoneID': zoneID, 'callId': callId});
+    } else {
+      await _invoke('showRVWithDynamicZoneID', {'zoneID': zoneID});
+    }
     _log('[showRVWithDynamicZoneID] 완료');
   }
 
@@ -254,4 +336,19 @@ LuckieverseFlutter Debug Status:
   - timeSinceInitialize: ${_initializeCallTime != null ? DateTime.now().difference(_initializeCallTime!).inMilliseconds : 'N/A'}ms
 ''';
   }
+}
+
+class _RVCallbacks {
+  final VoidCallback? onLoadFail;
+  final VoidCallback? onAdComplete;
+  final VoidCallback? onAdNoFill;
+  final VoidCallback? onAdBlockUser;
+  Timer? timer;
+
+  _RVCallbacks({
+    this.onLoadFail,
+    this.onAdComplete,
+    this.onAdNoFill,
+    this.onAdBlockUser,
+  });
 }

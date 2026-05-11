@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'luckieverse_flutter'
-  s.version          = '1.1.3'
+  s.version          = '1.1.5'
   s.summary          = 'Luckieverse Flutter plugin'
   s.description      = <<-DESC
 A Flutter plugin wrapper for the Luckieverse native SDKs.

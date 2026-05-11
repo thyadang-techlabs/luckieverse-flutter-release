@@ -336,9 +336,32 @@ public class SwiftLuckieverseFlutterPlugin: NSObject, FlutterPlugin, FlutterStre
         log("[ERROR] showRVWithDynamicZoneID: Missing zoneID")
         result(FlutterError(code: "bad_args", message: "Missing zoneID", details: nil)); return
       }
-      log("[showRVWithDynamicZoneID] zoneID: \(zoneID)")
+      let callId = args["callId"] as? String
+      log("[showRVWithDynamicZoneID] zoneID: \(zoneID), callId: \(callId ?? "nil")")
       #if canImport(Luckieverse)
-      LuckieverseSDK.shared.showRVWithDynamicZoneID(zoneID)
+      if let callId = callId {
+        LuckieverseSDK.shared.showRVWithDynamicZoneID(
+          zoneID,
+          onLoadFail: { [weak self] in
+            self?.log("[showRVWithDynamicZoneID] onLoadFail 콜백 실행됨, callId=\(callId)")
+            DispatchQueue.main.async { self?.eventSink?("rvCallback:\(callId):onLoadFail") }
+          },
+          onAdComplete: { [weak self] in
+            self?.log("[showRVWithDynamicZoneID] onAdComplete 콜백 실행됨, callId=\(callId)")
+            DispatchQueue.main.async { self?.eventSink?("rvCallback:\(callId):onAdComplete") }
+          },
+          onAdNoFill: { [weak self] in
+            self?.log("[showRVWithDynamicZoneID] onAdNoFill 콜백 실행됨, callId=\(callId)")
+            DispatchQueue.main.async { self?.eventSink?("rvCallback:\(callId):onAdNoFill") }
+          },
+          onAdBlockUser: { [weak self] in
+            self?.log("[showRVWithDynamicZoneID] onAdBlockUser 콜백 실행됨, callId=\(callId)")
+            DispatchQueue.main.async { self?.eventSink?("rvCallback:\(callId):onAdBlockUser") }
+          }
+        )
+      } else {
+        LuckieverseSDK.shared.showRVWithDynamicZoneID(zoneID)
+      }
       log("[showRVWithDynamicZoneID] 성공!")
       result(nil)
       #else
