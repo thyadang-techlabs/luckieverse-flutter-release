@@ -373,6 +373,10 @@ public class SwiftLuckieverseFlutterPlugin: NSObject, FlutterPlugin, FlutterStre
           onAdClose: { [weak self] in
             self?.log("[showRVWithDynamicZoneID] onAdClose 콜백 실행됨, callId=\(callId)")
             DispatchQueue.main.async { self?.eventSink?("rvCallback:\(callId):onAdClose") }
+          },
+          onAdClick: { [weak self] in
+            self?.log("[showRVWithDynamicZoneID] onAdClick 콜백 실행됨, callId=\(callId)")
+            DispatchQueue.main.async { self?.eventSink?("rvCallback:\(callId):onAdClick") }
           }
         )
       } else {

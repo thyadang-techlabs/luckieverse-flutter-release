@@ -333,8 +333,6 @@ class LuckieverseFlutter {
   /// - [onAdLoad]  : 광고 로드 완료 시 호출.
   /// - [onAdShow]  : 광고 화면이 표시될 때 호출.
   /// - [onAdClick] : 사용자가 광고를 클릭할 때 호출.
-  ///                 **iOS 미지원** — BidmadFullscreenAdDelegate가 click 이벤트를
-  ///                 제공하지 않으므로 iOS에서는 절대 호출되지 않습니다.
   /// - [onAdSkip]  : 사용자가 광고를 건너뛸 때 호출.
   ///
   /// **terminal 콜백** (광고 사이클 종료 신호. 호출 후 매핑 자동 정리):
@@ -438,8 +436,6 @@ class _RVCallbacks {
   final VoidCallback? onAdBlockUser;
   final VoidCallback? onAdLoad;
   final VoidCallback? onAdShow;
-  /// iOS 미지원 — BidmadFullscreenAdDelegate가 click 이벤트를 제공하지 않아
-  /// iOS에서는 절대 호출되지 않습니다.
   final VoidCallback? onAdClick;
   final VoidCallback? onAdSkip;
   final VoidCallback? onAdClose;
