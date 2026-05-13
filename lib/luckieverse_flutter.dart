@@ -87,48 +87,6 @@ class LuckieverseFlutter {
     _log('[updateIdfa] 완료');
   }
 
-  static Future<void> setFullScreenAdZoneIdForSaju(String zoneId) async {
-    _log('[setFullScreenAdZoneIdForSaju] zoneId=$zoneId, isInitialized=$_isInitializeCompleted');
-    _checkInitialization('setFullScreenAdZoneIdForSaju');
-    await _invoke('setFullScreenAdZoneIdForSaju', {'zoneId': zoneId});
-    _log('[setFullScreenAdZoneIdForSaju] 완료');
-  }
-  
-  static Future<void> setFullScreenAdZoneIdForNotSaju(String zoneId) async {
-    _log('[setFullScreenAdZoneIdForNotSaju] zoneId=$zoneId, isInitialized=$_isInitializeCompleted');
-    _checkInitialization('setFullScreenAdZoneIdForNotSaju');
-    await _invoke('setFullScreenAdZoneIdForNotSaju', {'zoneId': zoneId});
-    _log('[setFullScreenAdZoneIdForNotSaju] 완료');
-  }
-  
-  static Future<void> setFullScreenAdZoneIdForFortuneCookie(String zoneId) async {
-    _log('[setFullScreenAdZoneIdForFortuneCookie] zoneId=$zoneId, isInitialized=$_isInitializeCompleted');
-    _checkInitialization('setFullScreenAdZoneIdForFortuneCookie');
-    await _invoke('setFullScreenAdZoneIdForFortuneCookie', {'zoneId': zoneId});
-    _log('[setFullScreenAdZoneIdForFortuneCookie] 완료');
-  }
-
-  static Future<void> setBannerAdZoneIdForSaju(String zoneId) async {
-    _log('[setBannerAdZoneIdForSaju] zoneId=$zoneId, isInitialized=$_isInitializeCompleted');
-    _checkInitialization('setBannerAdZoneIdForSaju');
-    await _invoke('setBannerAdZoneIdForSaju', {'zoneId': zoneId});
-    _log('[setBannerAdZoneIdForSaju] 완료');
-  }
-  
-  static Future<void> setBannerAdZoneIdForNotSaju(String zoneId) async {
-    _log('[setBannerAdZoneIdForNotSaju] zoneId=$zoneId, isInitialized=$_isInitializeCompleted');
-    _checkInitialization('setBannerAdZoneIdForNotSaju');
-    await _invoke('setBannerAdZoneIdForNotSaju', {'zoneId': zoneId});
-    _log('[setBannerAdZoneIdForNotSaju] 완료');
-  }
-  
-  static Future<void> setBannerAdZoneIdForFortuneCookie(String zoneId) async {
-    _log('[setBannerAdZoneIdForFortuneCookie] zoneId=$zoneId, isInitialized=$_isInitializeCompleted');
-    _checkInitialization('setBannerAdZoneIdForFortuneCookie');
-    await _invoke('setBannerAdZoneIdForFortuneCookie', {'zoneId': zoneId});
-    _log('[setBannerAdZoneIdForFortuneCookie] 완료');
-  }
-
   static Future<void> setGoToSettingCallback() async {
     _log('[setGoToSettingCallback] isInitialized=$_isInitializeCompleted');
     await _invoke('setGoToSettingCallback');

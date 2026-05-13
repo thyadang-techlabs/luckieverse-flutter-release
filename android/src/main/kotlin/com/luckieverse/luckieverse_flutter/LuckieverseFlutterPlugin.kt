@@ -113,54 +113,6 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
         Log.d(TAG, "[updateIdfa] 완료")
         result.success(null)
       }
-      "setFullScreenAdZoneIdForSaju" -> {
-        Log.d(TAG, "[setFullScreenAdZoneIdForSaju] 호출됨, isInitializeCalled=$isInitializeCalled")
-        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
-        Log.d(TAG, "[setFullScreenAdZoneIdForSaju] zoneId: $zoneId")
-        Luckieverse.instance().setFullScreenAdZoneIdForSaju(zoneId)
-        Log.d(TAG, "[setFullScreenAdZoneIdForSaju] 완료")
-        result.success(null)
-      }
-      "setFullScreenAdZoneIdForNotSaju" -> {
-        Log.d(TAG, "[setFullScreenAdZoneIdForNotSaju] 호출됨, isInitializeCalled=$isInitializeCalled")
-        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
-        Log.d(TAG, "[setFullScreenAdZoneIdForNotSaju] zoneId: $zoneId")
-        Luckieverse.instance().setFullScreenAdZoneIdForNotSaju(zoneId)
-        Log.d(TAG, "[setFullScreenAdZoneIdForNotSaju] 완료")
-        result.success(null)
-      }
-      "setFullScreenAdZoneIdForFortuneCookie" -> {
-        Log.d(TAG, "[setFullScreenAdZoneIdForFortuneCookie] 호출됨, isInitializeCalled=$isInitializeCalled")
-        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
-        Log.d(TAG, "[setFullScreenAdZoneIdForFortuneCookie] zoneId: $zoneId")
-        Luckieverse.instance().setFullScreenAdZoneIdForFortuneCookie(zoneId)
-        Log.d(TAG, "[setFullScreenAdZoneIdForFortuneCookie] 완료")
-        result.success(null)
-      }
-      "setBannerAdZoneIdForSaju" -> {
-        Log.d(TAG, "[setBannerAdZoneIdForSaju] 호출됨, isInitializeCalled=$isInitializeCalled")
-        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
-        Log.d(TAG, "[setBannerAdZoneIdForSaju] zoneId: $zoneId")
-        Luckieverse.instance().setBannerAdZoneIdForSaju(zoneId)
-        Log.d(TAG, "[setBannerAdZoneIdForSaju] 완료")
-        result.success(null)
-      }
-      "setBannerAdZoneIdForNotSaju" -> {
-        Log.d(TAG, "[setBannerAdZoneIdForNotSaju] 호출됨, isInitializeCalled=$isInitializeCalled")
-        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
-        Log.d(TAG, "[setBannerAdZoneIdForNotSaju] zoneId: $zoneId")
-        Luckieverse.instance().setBannerAdZoneIdForNotSaju(zoneId)
-        Log.d(TAG, "[setBannerAdZoneIdForNotSaju] 완료")
-        result.success(null)
-      }
-      "setBannerAdZoneIdForFortuneCookie" -> {
-        Log.d(TAG, "[setBannerAdZoneIdForFortuneCookie] 호출됨, isInitializeCalled=$isInitializeCalled")
-        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
-        Log.d(TAG, "[setBannerAdZoneIdForFortuneCookie] zoneId: $zoneId")
-        Luckieverse.instance().setBannerAdZoneIdForFortuneCookie(zoneId)
-        Log.d(TAG, "[setBannerAdZoneIdForFortuneCookie] 완료")
-        result.success(null)
-      }
       "setGoToSettingCallback" -> {
         Log.d(TAG, "[setGoToSettingCallback] 호출됨, isInitializeCalled=$isInitializeCalled")
         Luckieverse.instance().setGoToSettingCallback {
