@@ -10,6 +10,8 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.EventChannel
 
 import com.techlabs.luckieverse.core.Luckieverse
+import com.techlabs.luckieverse.ad.LuckieverseAdInfo
+import com.techlabs.luckieverse.ad.LuckieverseAdError
 
 class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware, EventChannel.StreamHandler {
   private lateinit var channel: MethodChannel
@@ -256,41 +258,55 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
           if (callId != null) {
             Luckieverse.instance().showRVWithDynamicZoneID(
               activity, zoneID,
-              onLoadFail = {
+              onLoadFail = { adError ->
                 Log.d(TAG, "[showRVWithDynamicZoneID] onLoadFail 콜백 실행됨, callId=$callId")
-                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onLoadFail") }
+                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onLoadFail",
+                    "data" to mapOf("code" to adError.code, "message" to adError.message))
+                activity.runOnUiThread { eventSink?.success(payload) }
               },
-              onAdComplete = {
+              onAdComplete = { adInfo ->
                 Log.d(TAG, "[showRVWithDynamicZoneID] onAdComplete 콜백 실행됨, callId=$callId")
-                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdComplete") }
+                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdComplete",
+                    "data" to mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
+                activity.runOnUiThread { eventSink?.success(payload) }
               },
               onAdNoFill = {
                 Log.d(TAG, "[showRVWithDynamicZoneID] onAdNoFill 콜백 실행됨, callId=$callId")
-                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdNoFill") }
+                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdNoFill")
+                activity.runOnUiThread { eventSink?.success(payload) }
               },
               onAdBlockUser = {
                 Log.d(TAG, "[showRVWithDynamicZoneID] onAdBlockUser 콜백 실행됨, callId=$callId")
-                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdBlockUser") }
+                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdBlockUser")
+                activity.runOnUiThread { eventSink?.success(payload) }
               },
               onAdLoad = {
                 Log.d(TAG, "[showRVWithDynamicZoneID] onAdLoad 콜백 실행됨, callId=$callId")
-                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdLoad") }
+                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdLoad")
+                activity.runOnUiThread { eventSink?.success(payload) }
               },
-              onAdShow = {
+              onAdShow = { adInfo ->
                 Log.d(TAG, "[showRVWithDynamicZoneID] onAdShow 콜백 실행됨, callId=$callId")
-                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdShow") }
+                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdShow",
+                    "data" to mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
+                activity.runOnUiThread { eventSink?.success(payload) }
               },
-              onAdClick = {
+              onAdClick = { adInfo ->
                 Log.d(TAG, "[showRVWithDynamicZoneID] onAdClick 콜백 실행됨, callId=$callId")
-                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdClick") }
+                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdClick",
+                    "data" to mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
+                activity.runOnUiThread { eventSink?.success(payload) }
               },
               onAdSkip = {
                 Log.d(TAG, "[showRVWithDynamicZoneID] onAdSkip 콜백 실행됨, callId=$callId")
-                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdSkip") }
+                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdSkip")
+                activity.runOnUiThread { eventSink?.success(payload) }
               },
-              onAdClose = {
+              onAdClose = { adInfo ->
                 Log.d(TAG, "[showRVWithDynamicZoneID] onAdClose 콜백 실행됨, callId=$callId")
-                activity.runOnUiThread { eventSink?.success("rvCallback:$callId:onAdClose") }
+                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdClose",
+                    "data" to mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
+                activity.runOnUiThread { eventSink?.success(payload) }
               }
             )
           } else {

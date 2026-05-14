@@ -6,6 +6,36 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+class LuckieverseAdInfo {
+  final String zoneId;
+  final String? network;
+  final String? adType;
+
+  const LuckieverseAdInfo({required this.zoneId, this.network, this.adType});
+
+  factory LuckieverseAdInfo.fromMap(Map<dynamic, dynamic> map) {
+    return LuckieverseAdInfo(
+      zoneId: map['zoneId'] as String? ?? '',
+      network: map['network'] as String?,
+      adType: map['adType'] as String?,
+    );
+  }
+}
+
+class LuckieverseAdError {
+  final int code;
+  final String? message;
+
+  const LuckieverseAdError({required this.code, this.message});
+
+  factory LuckieverseAdError.fromMap(Map<dynamic, dynamic> map) {
+    return LuckieverseAdError(
+      code: map['code'] as int? ?? -1,
+      message: map['message'] as String?,
+    );
+  }
+}
+
 class LuckieverseFlutter {
   static const MethodChannel _channel = MethodChannel('luckieverse_flutter');
   static const EventChannel _eventChannel = EventChannel('luckieverse_flutter/events');
@@ -15,10 +45,12 @@ class LuckieverseFlutter {
   static DateTime? _initializeCallTime;
   static bool _isInitializeCompleted = false;
 
-  static Stream<String> get events => _eventChannel
-      .receiveBroadcastStream()
-      .cast<String>()
-      .where((event) => !event.startsWith('rvCallback:'));
+  static Stream<dynamic>? _cachedRawEventStream;
+  static Stream<dynamic> get _rawEventStream => _cachedRawEventStream ??= _eventChannel.receiveBroadcastStream();
+
+  static Stream<String> get events => _rawEventStream
+      .where((event) => event is String && !event.startsWith('rvCallback:'))
+      .cast<String>();
   
   /// 초기화 여부 확인
   static bool get isInitialized => _isInitializeCompleted;
@@ -176,7 +208,7 @@ class LuckieverseFlutter {
   static final Map<String, _RVCallbacks> _rvCallbacks = {};
   static final Random _secureRandom = Random.secure();
   static bool _rvListenerStarted = false;
-  static StreamSubscription<String>? _rvCallbackSubscription;
+  static StreamSubscription<dynamic>? _rvCallbackSubscription;
 
   static String _generateCallId() {
     final bytes = List<int>.generate(16, (_) => _secureRandom.nextInt(256));
@@ -187,7 +219,6 @@ class LuckieverseFlutter {
   /// terminal 콜백: 광고 사이클 종료 신호. 수신 즉시 매핑 제거 + timer 취소.
   static const _rvTerminalEvents = {
     'onLoadFail',
-    'onAdComplete',
     'onAdNoFill',
     'onAdBlockUser',
     'onAdClose',
@@ -196,13 +227,27 @@ class LuckieverseFlutter {
   static void _ensureRvCallbackListener() {
     if (_rvListenerStarted) return;
     _rvListenerStarted = true;
-    _rvCallbackSubscription = _eventChannel.receiveBroadcastStream().cast<String>().listen(
+    _rvCallbackSubscription = _rawEventStream.listen(
       (event) {
-        if (!event.startsWith('rvCallback:')) return;
-        final parts = event.split(':');
-        if (parts.length < 3) return;
-        final callId = parts[1];
-        final type = parts[2];
+        String? callId;
+        String? type;
+        Map<dynamic, dynamic>? dataMap;
+
+        if (event is Map) {
+          if (event['channel'] != 'rvCallback') return;
+          callId = event['callId'] as String?;
+          type = event['event'] as String?;
+          final raw = event['data'];
+          if (raw is Map) dataMap = raw;
+        } else if (event is String) {
+          if (!event.startsWith('rvCallback:')) return;
+          final parts = event.split(':');
+          if (parts.length < 3) return;
+          callId = parts[1];
+          type = parts[2];
+        }
+
+        if (callId == null || type == null) return;
         _log('[showRVWithDynamicZoneID] 콜백 수신: callId=$callId, type=$type');
 
         final isTerminal = _rvTerminalEvents.contains(type);
@@ -215,14 +260,20 @@ class LuckieverseFlutter {
         switch (type) {
           case 'onLoadFail':
             try {
-              callbacks.onLoadFail?.call();
+              final adError = dataMap != null
+                  ? LuckieverseAdError.fromMap(dataMap)
+                  : const LuckieverseAdError(code: -1);
+              callbacks.onLoadFail?.call(adError);
             } catch (e, st) {
               _log('[showRVWithDynamicZoneID] onLoadFail 콜백 예외: $e\n$st');
             }
             break;
           case 'onAdComplete':
             try {
-              callbacks.onAdComplete?.call();
+              final adInfo = dataMap != null
+                  ? LuckieverseAdInfo.fromMap(dataMap)
+                  : const LuckieverseAdInfo(zoneId: '');
+              callbacks.onAdComplete?.call(adInfo);
             } catch (e, st) {
               _log('[showRVWithDynamicZoneID] onAdComplete 콜백 예외: $e\n$st');
             }
@@ -250,14 +301,20 @@ class LuckieverseFlutter {
             break;
           case 'onAdShow':
             try {
-              callbacks.onAdShow?.call();
+              final adInfo = dataMap != null
+                  ? LuckieverseAdInfo.fromMap(dataMap)
+                  : const LuckieverseAdInfo(zoneId: '');
+              callbacks.onAdShow?.call(adInfo);
             } catch (e, st) {
               _log('[showRVWithDynamicZoneID] onAdShow 콜백 예외: $e\n$st');
             }
             break;
           case 'onAdClick':
             try {
-              callbacks.onAdClick?.call();
+              final adInfo = dataMap != null
+                  ? LuckieverseAdInfo.fromMap(dataMap)
+                  : const LuckieverseAdInfo(zoneId: '');
+              callbacks.onAdClick?.call(adInfo);
             } catch (e, st) {
               _log('[showRVWithDynamicZoneID] onAdClick 콜백 예외: $e\n$st');
             }
@@ -271,7 +328,10 @@ class LuckieverseFlutter {
             break;
           case 'onAdClose':
             try {
-              callbacks.onAdClose?.call();
+              final adInfo = dataMap != null
+                  ? LuckieverseAdInfo.fromMap(dataMap)
+                  : const LuckieverseAdInfo(zoneId: '');
+              callbacks.onAdClose?.call(adInfo);
             } catch (e, st) {
               _log('[showRVWithDynamicZoneID] onAdClose 콜백 예외: $e\n$st');
             }
@@ -289,27 +349,29 @@ class LuckieverseFlutter {
   ///
   /// **lifecycle 콜백** (광고 사이클 중 여러 번 호출될 수 있음):
   /// - [onAdLoad]  : 광고 로드 완료 시 호출.
-  /// - [onAdShow]  : 광고 화면이 표시될 때 호출.
-  /// - [onAdClick] : 사용자가 광고를 클릭할 때 호출.
+  /// - [onAdShow]  : 광고 화면이 표시될 때 호출 ([LuckieverseAdInfo] 포함).
+  /// - [onAdClick] : 사용자가 광고를 클릭할 때 호출 ([LuckieverseAdInfo] 포함).
   /// - [onAdSkip]  : 사용자가 광고를 건너뛸 때 호출.
   ///
   /// **terminal 콜백** (광고 사이클 종료 신호. 호출 후 매핑 자동 정리):
-  /// - [onLoadFail]    : 광고 로드 실패 시 호출.
-  /// - [onAdComplete]  : 보상 조건 달성(광고 완시청) 시 호출.
+  /// - [onLoadFail]    : 광고 로드 실패 시 호출 ([LuckieverseAdError] 포함).
   /// - [onAdNoFill]    : 광고 인벤토리 없음 시 호출.
   /// - [onAdBlockUser] : 광고 차단 사용자 처리 시 호출.
-  /// - [onAdClose]     : 광고 화면이 닫힐 때 호출 (사이클 최종 종료).
+  /// - [onAdClose]     : 광고 화면이 닫힐 때 호출 ([LuckieverseAdInfo] 포함, 사이클 최종 종료).
+  ///
+  /// **lifecycle 콜백 (추가)**:
+  /// - [onAdComplete]  : 보상 조건 달성(광고 완시청) 시 호출 ([LuckieverseAdInfo] 포함). onAdClose 이전에 발화.
   static Future<void> showRVWithDynamicZoneID(
     String zoneID, {
-    VoidCallback? onLoadFail,
-    VoidCallback? onAdComplete,
+    void Function(LuckieverseAdError)? onLoadFail,
+    void Function(LuckieverseAdInfo)? onAdComplete,
     VoidCallback? onAdNoFill,
     VoidCallback? onAdBlockUser,
     VoidCallback? onAdLoad,
-    VoidCallback? onAdShow,
-    VoidCallback? onAdClick,
+    void Function(LuckieverseAdInfo)? onAdShow,
+    void Function(LuckieverseAdInfo)? onAdClick,
     VoidCallback? onAdSkip,
-    VoidCallback? onAdClose,
+    void Function(LuckieverseAdInfo)? onAdClose,
   }) async {
     _log('[showRVWithDynamicZoneID] zoneID=$zoneID, isInitialized=$_isInitializeCompleted');
     _checkInitialization('showRVWithDynamicZoneID');
@@ -388,15 +450,15 @@ LuckieverseFlutter Debug Status:
 }
 
 class _RVCallbacks {
-  final VoidCallback? onLoadFail;
-  final VoidCallback? onAdComplete;
+  final void Function(LuckieverseAdError)? onLoadFail;
+  final void Function(LuckieverseAdInfo)? onAdComplete;
   final VoidCallback? onAdNoFill;
   final VoidCallback? onAdBlockUser;
   final VoidCallback? onAdLoad;
-  final VoidCallback? onAdShow;
-  final VoidCallback? onAdClick;
+  final void Function(LuckieverseAdInfo)? onAdShow;
+  final void Function(LuckieverseAdInfo)? onAdClick;
   final VoidCallback? onAdSkip;
-  final VoidCallback? onAdClose;
+  final void Function(LuckieverseAdInfo)? onAdClose;
   Timer? timer;
 
   _RVCallbacks({
