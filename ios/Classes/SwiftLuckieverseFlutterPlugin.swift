@@ -250,58 +250,69 @@ public class SwiftLuckieverseFlutterPlugin: NSObject, FlutterPlugin, FlutterStre
       log("[showRVWithDynamicZoneID] zoneID: \(zoneID), callId: \(callId ?? "nil")")
       #if canImport(Luckieverse)
       if let callId = callId {
+        // 오버로드 + optional @convention(block) 클로저 추론 모호성을 피하기 위해
+        // 각 콜백을 명시적 타입의 지역 상수로 분리해서 전달한다.
+        let onLoadFail: (LuckieverseAdError) -> Void = { [weak self] adError in
+          self?.log("[showRVWithDynamicZoneID] onLoadFail 콜백 실행됨, callId=\(callId)")
+          let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onLoadFail",
+                                        "data": ["code": adError.code, "message": adError.message as Any]]
+          DispatchQueue.main.async { self?.eventSink?(payload) }
+        }
+        let onAdComplete: (LuckieverseAdInfo) -> Void = { [weak self] adInfo in
+          self?.log("[showRVWithDynamicZoneID] onAdComplete 콜백 실행됨, callId=\(callId)")
+          let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdComplete",
+                                        "data": ["zoneId": adInfo.zoneId, "network": adInfo.network as Any, "adType": adInfo.adType as Any]]
+          DispatchQueue.main.async { self?.eventSink?(payload) }
+        }
+        let onAdNoFill: () -> Void = { [weak self] in
+          self?.log("[showRVWithDynamicZoneID] onAdNoFill 콜백 실행됨, callId=\(callId)")
+          let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdNoFill"]
+          DispatchQueue.main.async { self?.eventSink?(payload) }
+        }
+        let onAdBlockUser: () -> Void = { [weak self] in
+          self?.log("[showRVWithDynamicZoneID] onAdBlockUser 콜백 실행됨, callId=\(callId)")
+          let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdBlockUser"]
+          DispatchQueue.main.async { self?.eventSink?(payload) }
+        }
+        let onAdLoad: () -> Void = { [weak self] in
+          self?.log("[showRVWithDynamicZoneID] onAdLoad 콜백 실행됨, callId=\(callId)")
+          let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdLoad"]
+          DispatchQueue.main.async { self?.eventSink?(payload) }
+        }
+        let onAdShow: (LuckieverseAdInfo) -> Void = { [weak self] adInfo in
+          self?.log("[showRVWithDynamicZoneID] onAdShow 콜백 실행됨, callId=\(callId)")
+          let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdShow",
+                                        "data": ["zoneId": adInfo.zoneId, "network": adInfo.network as Any, "adType": adInfo.adType as Any]]
+          DispatchQueue.main.async { self?.eventSink?(payload) }
+        }
+        let onAdSkip: () -> Void = { [weak self] in
+          self?.log("[showRVWithDynamicZoneID] onAdSkip 콜백 실행됨, callId=\(callId)")
+          let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdSkip"]
+          DispatchQueue.main.async { self?.eventSink?(payload) }
+        }
+        let onAdClose: (LuckieverseAdInfo) -> Void = { [weak self] adInfo in
+          self?.log("[showRVWithDynamicZoneID] onAdClose 콜백 실행됨, callId=\(callId)")
+          let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdClose",
+                                        "data": ["zoneId": adInfo.zoneId, "network": adInfo.network as Any, "adType": adInfo.adType as Any]]
+          DispatchQueue.main.async { self?.eventSink?(payload) }
+        }
+        let onAdClick: (LuckieverseAdInfo) -> Void = { [weak self] adInfo in
+          self?.log("[showRVWithDynamicZoneID] onAdClick 콜백 실행됨, callId=\(callId)")
+          let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdClick",
+                                        "data": ["zoneId": adInfo.zoneId, "network": adInfo.network as Any, "adType": adInfo.adType as Any]]
+          DispatchQueue.main.async { self?.eventSink?(payload) }
+        }
         LuckieverseSDK.shared.showRVWithDynamicZoneID(
           zoneID,
-          onLoadFail: { [weak self] adError in
-            self?.log("[showRVWithDynamicZoneID] onLoadFail 콜백 실행됨, callId=\(callId)")
-            let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onLoadFail",
-                                          "data": ["code": adError.code, "message": adError.message as Any]]
-            DispatchQueue.main.async { self?.eventSink?(payload) }
-          },
-          onAdComplete: { [weak self] adInfo in
-            self?.log("[showRVWithDynamicZoneID] onAdComplete 콜백 실행됨, callId=\(callId)")
-            let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdComplete",
-                                          "data": ["zoneId": adInfo.zoneId, "network": adInfo.network as Any, "adType": adInfo.adType as Any]]
-            DispatchQueue.main.async { self?.eventSink?(payload) }
-          },
-          onAdNoFill: { [weak self] in
-            self?.log("[showRVWithDynamicZoneID] onAdNoFill 콜백 실행됨, callId=\(callId)")
-            let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdNoFill"]
-            DispatchQueue.main.async { self?.eventSink?(payload) }
-          },
-          onAdBlockUser: { [weak self] in
-            self?.log("[showRVWithDynamicZoneID] onAdBlockUser 콜백 실행됨, callId=\(callId)")
-            let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdBlockUser"]
-            DispatchQueue.main.async { self?.eventSink?(payload) }
-          },
-          onAdLoad: { [weak self] in
-            self?.log("[showRVWithDynamicZoneID] onAdLoad 콜백 실행됨, callId=\(callId)")
-            let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdLoad"]
-            DispatchQueue.main.async { self?.eventSink?(payload) }
-          },
-          onAdShow: { [weak self] adInfo in
-            self?.log("[showRVWithDynamicZoneID] onAdShow 콜백 실행됨, callId=\(callId)")
-            let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdShow",
-                                          "data": ["zoneId": adInfo.zoneId, "network": adInfo.network as Any, "adType": adInfo.adType as Any]]
-            DispatchQueue.main.async { self?.eventSink?(payload) }
-          },
-          onAdSkip: { [weak self] in
-            self?.log("[showRVWithDynamicZoneID] onAdSkip 콜백 실행됨, callId=\(callId)")
-            let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdSkip"]
-            DispatchQueue.main.async { self?.eventSink?(payload) }
-          },
-          onAdClose: { [weak self] adInfo in
-            self?.log("[showRVWithDynamicZoneID] onAdClose 콜백 실행됨, callId=\(callId)")
-            let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdClose",
-                                          "data": ["zoneId": adInfo.zoneId, "network": adInfo.network as Any, "adType": adInfo.adType as Any]]
-            DispatchQueue.main.async { self?.eventSink?(payload) }
-          },
-          onAdClick: { [weak self] adInfo in
-            self?.log("[showRVWithDynamicZoneID] onAdClick 콜백 실행됨, callId=\(callId)")
-            let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdClick",
-                                          "data": ["zoneId": adInfo.zoneId, "network": adInfo.network as Any, "adType": adInfo.adType as Any]]
-            DispatchQueue.main.async { self?.eventSink?(payload) }
-          }
+          onLoadFail: onLoadFail,
+          onAdComplete: onAdComplete,
+          onAdNoFill: onAdNoFill,
+          onAdBlockUser: onAdBlockUser,
+          onAdLoad: onAdLoad,
+          onAdShow: onAdShow,
+          onAdSkip: onAdSkip,
+          onAdClose: onAdClose,
+          onAdClick: onAdClick
         )
       } else {
         LuckieverseSDK.shared.showRVWithDynamicZoneID(zoneID)
