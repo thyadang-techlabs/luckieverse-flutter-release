@@ -249,9 +249,15 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
       "showRVWithDynamicZoneID" -> {
         Log.d(TAG, "[showRVWithDynamicZoneID] 호출됨, isInitializeCalled=$isInitializeCalled")
         val zoneID = call.argument<String>("zoneID")
-          ?: return result.error("bad_args", "Missing zoneID", null)
+        if (zoneID == null) {
+          Log.w(TAG, "[showRVWithDynamicZoneID] 실패: zoneID가 누락되었습니다")
+          return result.error("bad_args", "Missing zoneID", null)
+        }
         val activity = activityBinding?.activity
-          ?: return result.error("no_activity", "Activity is not attached", null)
+        if (activity == null) {
+          Log.w(TAG, "[showRVWithDynamicZoneID] 실패: Activity가 null입니다! zoneID=$zoneID")
+          return result.error("no_activity", "Activity is not attached", null)
+        }
         val callId = call.argument<String>("callId")
         Log.d(TAG, "[showRVWithDynamicZoneID] zoneID: $zoneID, callId: $callId")
         try {
@@ -259,54 +265,36 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
             Luckieverse.instance().showRVWithDynamicZoneID(
               activity, zoneID,
               onLoadFail = { adError ->
-                Log.d(TAG, "[showRVWithDynamicZoneID] onLoadFail 콜백 실행됨, callId=$callId")
-                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onLoadFail",
-                    "data" to mapOf("code" to adError.code, "message" to adError.message))
-                activity.runOnUiThread { eventSink?.success(payload) }
+                emitRvEvent(callId, "onLoadFail",
+                    mapOf("code" to adError.code, "message" to adError.message))
               },
               onAdComplete = { adInfo ->
-                Log.d(TAG, "[showRVWithDynamicZoneID] onAdComplete 콜백 실행됨, callId=$callId")
-                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdComplete",
-                    "data" to mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
-                activity.runOnUiThread { eventSink?.success(payload) }
+                emitRvEvent(callId, "onAdComplete",
+                    mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
               },
               onAdNoFill = {
-                Log.d(TAG, "[showRVWithDynamicZoneID] onAdNoFill 콜백 실행됨, callId=$callId")
-                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdNoFill")
-                activity.runOnUiThread { eventSink?.success(payload) }
+                emitRvEvent(callId, "onAdNoFill")
               },
               onAdBlockUser = {
-                Log.d(TAG, "[showRVWithDynamicZoneID] onAdBlockUser 콜백 실행됨, callId=$callId")
-                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdBlockUser")
-                activity.runOnUiThread { eventSink?.success(payload) }
+                emitRvEvent(callId, "onAdBlockUser")
               },
               onAdLoad = {
-                Log.d(TAG, "[showRVWithDynamicZoneID] onAdLoad 콜백 실행됨, callId=$callId")
-                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdLoad")
-                activity.runOnUiThread { eventSink?.success(payload) }
+                emitRvEvent(callId, "onAdLoad")
               },
               onAdShow = { adInfo ->
-                Log.d(TAG, "[showRVWithDynamicZoneID] onAdShow 콜백 실행됨, callId=$callId")
-                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdShow",
-                    "data" to mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
-                activity.runOnUiThread { eventSink?.success(payload) }
+                emitRvEvent(callId, "onAdShow",
+                    mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
               },
               onAdClick = { adInfo ->
-                Log.d(TAG, "[showRVWithDynamicZoneID] onAdClick 콜백 실행됨, callId=$callId")
-                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdClick",
-                    "data" to mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
-                activity.runOnUiThread { eventSink?.success(payload) }
+                emitRvEvent(callId, "onAdClick",
+                    mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
               },
               onAdSkip = {
-                Log.d(TAG, "[showRVWithDynamicZoneID] onAdSkip 콜백 실행됨, callId=$callId")
-                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdSkip")
-                activity.runOnUiThread { eventSink?.success(payload) }
+                emitRvEvent(callId, "onAdSkip")
               },
               onAdClose = { adInfo ->
-                Log.d(TAG, "[showRVWithDynamicZoneID] onAdClose 콜백 실행됨, callId=$callId")
-                val payload = mapOf("channel" to "rvCallback", "callId" to callId, "event" to "onAdClose",
-                    "data" to mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
-                activity.runOnUiThread { eventSink?.success(payload) }
+                emitRvEvent(callId, "onAdClose",
+                    mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
               }
             )
           } else {
@@ -324,6 +312,24 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
         Log.w(TAG, "알 수 없는 메서드: ${call.method}")
         result.notImplemented()
       }
+    }
+  }
+
+  /// RV(보상형) 광고 콜백을 rvCallback 이벤트로 Flutter 측에 전달한다.
+  /// eventSink가 null이면(EventChannel onCancel 이후 등) 이벤트가 조용히 소실되므로
+  /// 반드시 경고 로그를 남긴다.
+  private fun emitRvEvent(callId: String, event: String, data: Map<String, Any?>? = null) {
+    Log.d(TAG, "[showRVWithDynamicZoneID] $event 콜백 실행됨, callId=$callId")
+    val payload = if (data != null) {
+      mapOf("channel" to "rvCallback", "callId" to callId, "event" to event, "data" to data)
+    } else {
+      mapOf("channel" to "rvCallback", "callId" to callId, "event" to event)
+    }
+    android.os.Handler(android.os.Looper.getMainLooper()).post {
+      if (eventSink == null) {
+        Log.w(TAG, "[showRVWithDynamicZoneID] eventSink=null, 이벤트 전송 불가: callId=$callId, event=$event")
+      }
+      eventSink?.success(payload)
     }
   }
 
@@ -366,7 +372,9 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
     eventSink = events
   }
   override fun onCancel(arguments: Any?) {
-    Log.d(TAG, "EventChannel onCancel: arguments=$arguments")
+    Log.w(TAG, "EventChannel onCancel 호출됨 - eventSink가 해제됩니다. arguments=$arguments. " +
+        "이 시점 이후 진행 중이던 광고 콜백(rvCallback)은 전달되지 않을 수 있습니다 " +
+        "(Flutter 엔진 재시작, hot restart, 리스너 해제 등에서 발생 가능).")
     eventSink = null
   }
 }

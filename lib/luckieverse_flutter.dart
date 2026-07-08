@@ -242,19 +242,37 @@ class LuckieverseFlutter {
         } else if (event is String) {
           if (!event.startsWith('rvCallback:')) return;
           final parts = event.split(':');
-          if (parts.length < 3) return;
+          if (parts.length < 3) {
+            _adLog(
+              '[showRVWithDynamicZoneID] rvCallback 이벤트 파싱 실패(형식 오류): raw="$event"',
+              warning: true,
+            );
+            return;
+          }
           callId = parts[1];
           type = parts[2];
         }
 
-        if (callId == null || type == null) return;
-        _log('[showRVWithDynamicZoneID] 콜백 수신: callId=$callId, type=$type');
+        if (callId == null || type == null) {
+          _adLog(
+            '[showRVWithDynamicZoneID] rvCallback 이벤트 파싱 실패(callId 또는 type 누락): raw=$event',
+            warning: true,
+          );
+          return;
+        }
+        _adLog('[showRVWithDynamicZoneID] 콜백 수신: callId=$callId, type=$type');
 
         final isTerminal = _rvTerminalEvents.contains(type);
         final callbacks = isTerminal
             ? _rvCallbacks.remove(callId)
             : _rvCallbacks[callId];
-        if (callbacks == null) return;
+        if (callbacks == null) {
+          _adLog(
+            '[showRVWithDynamicZoneID] callId=$callId 에 대한 콜백을 못 찾음(이미 처리됐거나 TTL 만료됨), type=$type',
+            warning: true,
+          );
+          return;
+        }
         if (isTerminal) callbacks.timer?.cancel();
 
         switch (type) {
@@ -265,38 +283,41 @@ class LuckieverseFlutter {
                   : const LuckieverseAdError(code: -1);
               callbacks.onLoadFail?.call(adError);
             } catch (e, st) {
-              _log('[showRVWithDynamicZoneID] onLoadFail 콜백 예외: $e\n$st');
+              _adLog('[showRVWithDynamicZoneID] onLoadFail 콜백 예외: $e\n$st', warning: true);
             }
             break;
           case 'onAdComplete':
+            // 보상 지급 완료 시점. 이후 onAdClose가 유실되어 TTL이 만료되더라도
+            // 이미 완료된 광고를 onLoadFail로 재통지하지 않기 위한 플래그.
+            callbacks.hasCompleted = true;
             try {
               final adInfo = dataMap != null
                   ? LuckieverseAdInfo.fromMap(dataMap)
                   : const LuckieverseAdInfo(zoneId: '');
               callbacks.onAdComplete?.call(adInfo);
             } catch (e, st) {
-              _log('[showRVWithDynamicZoneID] onAdComplete 콜백 예외: $e\n$st');
+              _adLog('[showRVWithDynamicZoneID] onAdComplete 콜백 예외: $e\n$st', warning: true);
             }
             break;
           case 'onAdNoFill':
             try {
               callbacks.onAdNoFill?.call();
             } catch (e, st) {
-              _log('[showRVWithDynamicZoneID] onAdNoFill 콜백 예외: $e\n$st');
+              _adLog('[showRVWithDynamicZoneID] onAdNoFill 콜백 예외: $e\n$st', warning: true);
             }
             break;
           case 'onAdBlockUser':
             try {
               callbacks.onAdBlockUser?.call();
             } catch (e, st) {
-              _log('[showRVWithDynamicZoneID] onAdBlockUser 콜백 예외: $e\n$st');
+              _adLog('[showRVWithDynamicZoneID] onAdBlockUser 콜백 예외: $e\n$st', warning: true);
             }
             break;
           case 'onAdLoad':
             try {
               callbacks.onAdLoad?.call();
             } catch (e, st) {
-              _log('[showRVWithDynamicZoneID] onAdLoad 콜백 예외: $e\n$st');
+              _adLog('[showRVWithDynamicZoneID] onAdLoad 콜백 예외: $e\n$st', warning: true);
             }
             break;
           case 'onAdShow':
@@ -306,7 +327,7 @@ class LuckieverseFlutter {
                   : const LuckieverseAdInfo(zoneId: '');
               callbacks.onAdShow?.call(adInfo);
             } catch (e, st) {
-              _log('[showRVWithDynamicZoneID] onAdShow 콜백 예외: $e\n$st');
+              _adLog('[showRVWithDynamicZoneID] onAdShow 콜백 예외: $e\n$st', warning: true);
             }
             break;
           case 'onAdClick':
@@ -316,14 +337,14 @@ class LuckieverseFlutter {
                   : const LuckieverseAdInfo(zoneId: '');
               callbacks.onAdClick?.call(adInfo);
             } catch (e, st) {
-              _log('[showRVWithDynamicZoneID] onAdClick 콜백 예외: $e\n$st');
+              _adLog('[showRVWithDynamicZoneID] onAdClick 콜백 예외: $e\n$st', warning: true);
             }
             break;
           case 'onAdSkip':
             try {
               callbacks.onAdSkip?.call();
             } catch (e, st) {
-              _log('[showRVWithDynamicZoneID] onAdSkip 콜백 예외: $e\n$st');
+              _adLog('[showRVWithDynamicZoneID] onAdSkip 콜백 예외: $e\n$st', warning: true);
             }
             break;
           case 'onAdClose':
@@ -333,16 +354,16 @@ class LuckieverseFlutter {
                   : const LuckieverseAdInfo(zoneId: '');
               callbacks.onAdClose?.call(adInfo);
             } catch (e, st) {
-              _log('[showRVWithDynamicZoneID] onAdClose 콜백 예외: $e\n$st');
+              _adLog('[showRVWithDynamicZoneID] onAdClose 콜백 예외: $e\n$st', warning: true);
             }
             break;
         }
       },
       onError: (error) {
-        _log('[showRVWithDynamicZoneID] EventChannel 오류: $error');
+        _adLog('[showRVWithDynamicZoneID] EventChannel 오류: $error', warning: true);
       },
     );
-    _log('[showRVWithDynamicZoneID] RV 콜백 리스너 시작됨');
+    _adLog('[showRVWithDynamicZoneID] RV 콜백 리스너 시작됨');
   }
 
   /// RV(보상형 광고)를 동적 zoneID로 표시합니다.
@@ -361,6 +382,14 @@ class LuckieverseFlutter {
   ///
   /// **lifecycle 콜백 (추가)**:
   /// - [onAdComplete]  : 보상 조건 달성(광고 완시청) 시 호출 ([LuckieverseAdInfo] 포함). onAdClose 이전에 발화.
+  ///   한 번이라도 발화되면, 이후 onAdClose가 유실되어 TTL(5분)이 만료되더라도
+  ///   [onLoadFail]이 재통지되지 않는다(이미 완료된 광고를 실패로 되돌리지 않기 위함).
+  ///
+  /// **주의: native 호출 실패 시 에러 처리**
+  /// native 호출(`_invoke`)이 실패했을 때, [onLoadFail] 콜백이 등록되어 있다면
+  /// [onLoadFail]로 합성 에러(code: -999)가 전달되고 Future는 정상 종료됩니다.
+  /// 만약 [onLoadFail] 콜백이 등록되어 있지 않다면, 예외(Exception)가 rethrow되므로
+  /// 호출 측에서 try-catch 등으로 예외를 처리해야 합니다.
   static Future<void> showRVWithDynamicZoneID(
     String zoneID, {
     void Function(LuckieverseAdError)? onLoadFail,
@@ -373,7 +402,7 @@ class LuckieverseFlutter {
     VoidCallback? onAdSkip,
     void Function(LuckieverseAdInfo)? onAdClose,
   }) async {
-    _log('[showRVWithDynamicZoneID] zoneID=$zoneID, isInitialized=$_isInitializeCompleted');
+    _adLog('[showRVWithDynamicZoneID] zoneID=$zoneID, isInitialized=$_isInitializeCompleted');
     _checkInitialization('showRVWithDynamicZoneID');
 
     final hasCallbacks = onLoadFail != null || onAdComplete != null ||
@@ -396,26 +425,98 @@ class LuckieverseFlutter {
         onAdClose: onAdClose,
       );
       entry.timer = Timer(const Duration(minutes: 5), () {
-        if (_rvCallbacks.remove(callId) != null) {
-          _log('[showRVWithDynamicZoneID] callId=$callId TTL 만료로 정리됨');
+        final removed = _rvCallbacks.remove(callId);
+        if (removed == null) return;
+        if (removed.hasCompleted) {
+          // onAdComplete(보상 지급)까지는 도달했지만 onAdClose가 유실된 경우.
+          // 이미 완료된 광고 사이클을 실패로 재통지하면 안 되므로 onLoadFail을 생략한다.
+          _adLog(
+            '[showRVWithDynamicZoneID] callId=$callId TTL 만료 - onAdComplete 이미 발화되어 '
+            'onLoadFail 재통지를 생략함 (zoneID=$zoneID, onAdClose 유실 의심)',
+            warning: true,
+          );
+          return;
+        }
+        _adLog(
+          '[showRVWithDynamicZoneID] callId=$callId TTL 만료로 정리됨 (zoneID=$zoneID)',
+          warning: true,
+        );
+        try {
+          removed.onLoadFail?.call(const LuckieverseAdError(
+            code: -998,
+            message: 'TTL expired, no response from native within 5 minutes',
+          ));
+        } catch (e, st) {
+          _adLog(
+            '[showRVWithDynamicZoneID] callId=$callId TTL onLoadFail 콜백 예외: $e\n$st',
+            warning: true,
+          );
         }
       });
       _rvCallbacks[callId] = entry;
-      _log('[showRVWithDynamicZoneID] callId=$callId 생성됨');
-      await _invoke('showRVWithDynamicZoneID', {'zoneID': zoneID, 'callId': callId});
+      _adLog('[showRVWithDynamicZoneID] callId=$callId 생성됨');
+      try {
+        await _invoke(
+          'showRVWithDynamicZoneID',
+          {'zoneID': zoneID, 'callId': callId},
+          true,
+        );
+      } catch (e) {
+        entry.timer?.cancel();
+        if (_rvCallbacks.remove(callId) != null) {
+          _adLog(
+            '[showRVWithDynamicZoneID] callId=$callId _invoke 실패로 즉시 정리됨: $e',
+            warning: true,
+          );
+          if (onLoadFail != null) {
+            try {
+              onLoadFail.call(const LuckieverseAdError(
+                code: -999,
+                message: 'showRVWithDynamicZoneID native invoke failed',
+              ));
+            } catch (cbErr, cbSt) {
+              _adLog(
+                '[showRVWithDynamicZoneID] callId=$callId invoke 실패 onLoadFail 콜백 예외: $cbErr\n$cbSt',
+                warning: true,
+              );
+            }
+          } else {
+            rethrow;
+          }
+        } else {
+          rethrow;
+        }
+      }
     } else {
-      await _invoke('showRVWithDynamicZoneID', {'zoneID': zoneID});
+      await _invoke('showRVWithDynamicZoneID', {'zoneID': zoneID}, true);
     }
-    _log('[showRVWithDynamicZoneID] 완료');
+    _adLog('[showRVWithDynamicZoneID] 완료');
   }
 
-  static Future<void> _invoke(String method, [Map<String, dynamic>? arguments]) async {
-    _log('[_invoke] method=$method, arguments=$arguments');
+  /// [isAdFlow]가 true면 release 빌드에서도 남는 [_adLog]를 사용한다.
+  /// (showRVWithDynamicZoneID 등 광고 흐름 추적용)
+  static Future<void> _invoke(
+    String method, [
+    Map<String, dynamic>? arguments,
+    bool isAdFlow = false,
+  ]) async {
+    void log(String message, {bool warning = false}) {
+      if (isAdFlow) {
+        _adLog(message, warning: warning);
+      } else {
+        _log(message);
+      }
+    }
+
+    log('[_invoke] method=$method, arguments=$arguments');
     try {
       await _channel.invokeMethod(method, arguments);
-      _log('[_invoke] $method 성공');
+      log('[_invoke] $method 성공');
     } on PlatformException catch (e) {
-      _log('[_invoke] PlatformException 발생: code=${e.code}, message=${e.message}, details=${e.details}');
+      log(
+        '[_invoke] PlatformException 발생: code=${e.code}, message=${e.message}, details=${e.details}',
+        warning: isAdFlow,
+      );
       // Re-throw as regular exception with message
       throw Exception('LuckieverseFlutter.$method failed: ${e.code} ${e.message}');
     }
@@ -430,13 +531,34 @@ class LuckieverseFlutter {
     }
   }
   
-  /// 디버그 로그 출력
+  /// 디버그 로그 출력 (release 빌드에서는 출력되지 않음)
   static void _log(String message) {
     if (kDebugMode) {
       debugPrint('[LuckieverseFlutter] $message');
     }
   }
-  
+
+  /// 광고(RV) 흐름 전용 로그. release 빌드에서도 항상 출력됨.
+  /// "광고 로드는 됐는데 show가 안 됨" 같은 프로덕션 버그를 추적하기 위한 목적.
+  static void _adLog(String message, {bool warning = false}) {
+    final tag = warning ? '[LuckieverseFlutter][WARN]' : '[LuckieverseFlutter]';
+    debugPrint('$tag $message');
+  }
+
+  /// 테스트 전용: RV 콜백 리스너/매핑 상태를 초기화한다.
+  /// 프로덕션 코드에서는 절대 호출하지 말 것 — 테스트 간 static 상태 격리를 위한 용도.
+  @visibleForTesting
+  static void resetRvStateForTesting() {
+    _rvCallbackSubscription?.cancel();
+    _rvCallbackSubscription = null;
+    _rvListenerStarted = false;
+    _cachedRawEventStream = null;
+    for (final callbacks in _rvCallbacks.values) {
+      callbacks.timer?.cancel();
+    }
+    _rvCallbacks.clear();
+  }
+
   /// 현재 초기화 상태를 문자열로 반환 (디버깅용)
   static String getDebugStatus() {
     return '''
@@ -460,6 +582,10 @@ class _RVCallbacks {
   final VoidCallback? onAdSkip;
   final void Function(LuckieverseAdInfo)? onAdClose;
   Timer? timer;
+
+  /// onAdComplete(보상 지급)가 발화됐는지 여부.
+  /// true가 되면 이후 TTL이 만료돼도 onLoadFail을 호출하지 않는다.
+  bool hasCompleted = false;
 
   _RVCallbacks({
     this.onLoadFail,
