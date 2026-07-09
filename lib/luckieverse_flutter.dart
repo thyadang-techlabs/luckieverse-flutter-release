@@ -204,6 +204,26 @@ class LuckieverseFlutter {
     _log('[openNewYearFortune] 완료');
   }
 
+  /// 전면(fullscreen) 광고 로드 타임아웃을 설정합니다. 기본값 40초.
+  /// 유효 범위(Android: 1초~600초, iOS: 1초 이상 상한 없음)를 벗어난 값은
+  /// 예외 없이 조용히 무시되고 이전 값이 유지됩니다.
+  static Future<void> setAdLoadTimeout(Duration timeout) async {
+    _log('[setAdLoadTimeout] timeout=$timeout, isInitialized=$_isInitializeCompleted');
+    _checkInitialization('setAdLoadTimeout');
+    await _invoke('setAdLoadTimeout', {'timeoutMs': timeout.inMilliseconds});
+    _log('[setAdLoadTimeout] 완료');
+  }
+
+  /// 전면(fullscreen) 광고 표시(show) 타임아웃을 설정합니다. 기본값 180초.
+  /// 유효 범위(Android: 1초~600초, iOS: 1초 이상 상한 없음)를 벗어난 값은
+  /// 예외 없이 조용히 무시되고 이전 값이 유지됩니다.
+  static Future<void> setAdShowTimeout(Duration timeout) async {
+    _log('[setAdShowTimeout] timeout=$timeout, isInitialized=$_isInitializeCompleted');
+    _checkInitialization('setAdShowTimeout');
+    await _invoke('setAdShowTimeout', {'timeoutMs': timeout.inMilliseconds});
+    _log('[setAdShowTimeout] 완료');
+  }
+
   // RV 콜백 관련 상태
   static final Map<String, _RVCallbacks> _rvCallbacks = {};
   static final Random _secureRandom = Random.secure();
@@ -216,7 +236,7 @@ class LuckieverseFlutter {
     return 'rv_$nonce';
   }
 
-  /// terminal 콜백: 광고 사이클 종료 신호. 수신 즉시 매핑 제거 + timer 취소.
+  /// terminal 콜백: 광고 사이클 종료 신호. 수신 즉시 매핑 제거.
   static const _rvTerminalEvents = {
     'onLoadFail',
     'onAdNoFill',
@@ -268,12 +288,11 @@ class LuckieverseFlutter {
             : _rvCallbacks[callId];
         if (callbacks == null) {
           _adLog(
-            '[showRVWithDynamicZoneID] callId=$callId 에 대한 콜백을 못 찾음(이미 처리됐거나 TTL 만료됨), type=$type',
+            '[showRVWithDynamicZoneID] callId=$callId 에 대한 콜백을 못 찾음(이미 처리됨), type=$type',
             warning: true,
           );
           return;
         }
-        if (isTerminal) callbacks.timer?.cancel();
 
         switch (type) {
           case 'onLoadFail':
@@ -287,9 +306,6 @@ class LuckieverseFlutter {
             }
             break;
           case 'onAdComplete':
-            // 보상 지급 완료 시점. 이후 onAdClose가 유실되어 TTL이 만료되더라도
-            // 이미 완료된 광고를 onLoadFail로 재통지하지 않기 위한 플래그.
-            callbacks.hasCompleted = true;
             try {
               final adInfo = dataMap != null
                   ? LuckieverseAdInfo.fromMap(dataMap)
@@ -382,8 +398,12 @@ class LuckieverseFlutter {
   ///
   /// **lifecycle 콜백 (추가)**:
   /// - [onAdComplete]  : 보상 조건 달성(광고 완시청) 시 호출 ([LuckieverseAdInfo] 포함). onAdClose 이전에 발화.
-  ///   한 번이라도 발화되면, 이후 onAdClose가 유실되어 TTL(5분)이 만료되더라도
-  ///   [onLoadFail]이 재통지되지 않는다(이미 완료된 광고를 실패로 되돌리지 않기 위함).
+  ///
+  /// **주의: 콜백 매핑은 시간 기반으로 만료되지 않음**
+  /// callId에 대한 콜백 매핑은 오직 native(안드로이드)로부터 terminal 콜백
+  /// ([onLoadFail], [onAdNoFill], [onAdBlockUser], [onAdClose])이 도착했을 때만
+  /// 정리된다. native가 응답을 영영 주지 않는 극단적 케이스에서는 해당 콜백이
+  /// 영원히 발화되지 않을 수 있다(호출 측에서 필요 시 자체 타임아웃을 구현해야 함).
   ///
   /// **주의: native 호출 실패 시 에러 처리**
   /// native 호출(`_invoke`)이 실패했을 때, [onLoadFail] 콜백이 등록되어 있다면
@@ -424,35 +444,6 @@ class LuckieverseFlutter {
         onAdSkip: onAdSkip,
         onAdClose: onAdClose,
       );
-      entry.timer = Timer(const Duration(minutes: 5), () {
-        final removed = _rvCallbacks.remove(callId);
-        if (removed == null) return;
-        if (removed.hasCompleted) {
-          // onAdComplete(보상 지급)까지는 도달했지만 onAdClose가 유실된 경우.
-          // 이미 완료된 광고 사이클을 실패로 재통지하면 안 되므로 onLoadFail을 생략한다.
-          _adLog(
-            '[showRVWithDynamicZoneID] callId=$callId TTL 만료 - onAdComplete 이미 발화되어 '
-            'onLoadFail 재통지를 생략함 (zoneID=$zoneID, onAdClose 유실 의심)',
-            warning: true,
-          );
-          return;
-        }
-        _adLog(
-          '[showRVWithDynamicZoneID] callId=$callId TTL 만료로 정리됨 (zoneID=$zoneID)',
-          warning: true,
-        );
-        try {
-          removed.onLoadFail?.call(const LuckieverseAdError(
-            code: -998,
-            message: 'TTL expired, no response from native within 5 minutes',
-          ));
-        } catch (e, st) {
-          _adLog(
-            '[showRVWithDynamicZoneID] callId=$callId TTL onLoadFail 콜백 예외: $e\n$st',
-            warning: true,
-          );
-        }
-      });
       _rvCallbacks[callId] = entry;
       _adLog('[showRVWithDynamicZoneID] callId=$callId 생성됨');
       try {
@@ -462,7 +453,6 @@ class LuckieverseFlutter {
           true,
         );
       } catch (e) {
-        entry.timer?.cancel();
         if (_rvCallbacks.remove(callId) != null) {
           _adLog(
             '[showRVWithDynamicZoneID] callId=$callId _invoke 실패로 즉시 정리됨: $e',
@@ -553,9 +543,6 @@ class LuckieverseFlutter {
     _rvCallbackSubscription = null;
     _rvListenerStarted = false;
     _cachedRawEventStream = null;
-    for (final callbacks in _rvCallbacks.values) {
-      callbacks.timer?.cancel();
-    }
     _rvCallbacks.clear();
   }
 
@@ -581,11 +568,6 @@ class _RVCallbacks {
   final void Function(LuckieverseAdInfo)? onAdClick;
   final VoidCallback? onAdSkip;
   final void Function(LuckieverseAdInfo)? onAdClose;
-  Timer? timer;
-
-  /// onAdComplete(보상 지급)가 발화됐는지 여부.
-  /// true가 되면 이후 TTL이 만료돼도 onLoadFail을 호출하지 않는다.
-  bool hasCompleted = false;
 
   _RVCallbacks({
     this.onLoadFail,

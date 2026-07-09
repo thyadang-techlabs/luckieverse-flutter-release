@@ -240,6 +240,36 @@ public class SwiftLuckieverseFlutterPlugin: NSObject, FlutterPlugin, FlutterStre
       result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
       #endif
 
+    case "setAdLoadTimeout":
+      log("[setAdLoadTimeout] 호출됨, isInitializeCalled=\(isInitializeCalled)")
+      guard let args = call.arguments as? [String: Any], let timeoutMs = (args["timeoutMs"] as? NSNumber)?.doubleValue else {
+        log("[ERROR] setAdLoadTimeout: Missing timeoutMs")
+        result(FlutterError(code: "bad_args", message: "Missing timeoutMs", details: nil)); return
+      }
+      log("[setAdLoadTimeout] timeoutMs: \(timeoutMs)")
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.setFullscreenAdLoadTimeout(timeoutMs / 1000.0)
+      log("[setAdLoadTimeout] 완료")
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "setAdShowTimeout":
+      log("[setAdShowTimeout] 호출됨, isInitializeCalled=\(isInitializeCalled)")
+      guard let args = call.arguments as? [String: Any], let timeoutMs = (args["timeoutMs"] as? NSNumber)?.doubleValue else {
+        log("[ERROR] setAdShowTimeout: Missing timeoutMs")
+        result(FlutterError(code: "bad_args", message: "Missing timeoutMs", details: nil)); return
+      }
+      log("[setAdShowTimeout] timeoutMs: \(timeoutMs)")
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.setFullscreenAdShowTimeout(timeoutMs / 1000.0)
+      log("[setAdShowTimeout] 완료")
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
     case "showRVWithDynamicZoneID":
       log("[showRVWithDynamicZoneID] 호출됨, isInitializeCalled=\(isInitializeCalled)")
       guard let args = call.arguments as? [String: Any], let zoneID = args["zoneID"] as? String else {

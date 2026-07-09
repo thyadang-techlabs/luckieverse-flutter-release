@@ -246,6 +246,24 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
           result.error("open_error", e.message, e.stackTraceToString())
         }
       }
+      "setAdLoadTimeout" -> {
+        Log.d(TAG, "[setAdLoadTimeout] 호출됨, isInitializeCalled=$isInitializeCalled")
+        val timeoutMs = call.argument<Number>("timeoutMs")?.toLong()
+            ?: return result.error("bad_args", "Missing timeoutMs", null)
+        Log.d(TAG, "[setAdLoadTimeout] timeoutMs: $timeoutMs")
+        Luckieverse.instance().setAdLoadTimeout(timeoutMs)
+        Log.d(TAG, "[setAdLoadTimeout] 완료")
+        result.success(null)
+      }
+      "setAdShowTimeout" -> {
+        Log.d(TAG, "[setAdShowTimeout] 호출됨, isInitializeCalled=$isInitializeCalled")
+        val timeoutMs = call.argument<Number>("timeoutMs")?.toLong()
+            ?: return result.error("bad_args", "Missing timeoutMs", null)
+        Log.d(TAG, "[setAdShowTimeout] timeoutMs: $timeoutMs")
+        Luckieverse.instance().setShowLoadTimeout(timeoutMs)
+        Log.d(TAG, "[setAdShowTimeout] 완료")
+        result.success(null)
+      }
       "showRVWithDynamicZoneID" -> {
         Log.d(TAG, "[showRVWithDynamicZoneID] 호출됨, isInitializeCalled=$isInitializeCalled")
         val zoneID = call.argument<String>("zoneID")
