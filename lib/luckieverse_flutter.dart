@@ -210,7 +210,7 @@ class LuckieverseFlutter {
   static Future<void> setAdLoadTimeout(Duration timeout) async {
     _log('[setAdLoadTimeout] timeout=$timeout, isInitialized=$_isInitializeCompleted');
     _checkInitialization('setAdLoadTimeout');
-    await _invoke('setAdLoadTimeout', {'timeoutMs': timeout.inMilliseconds});
+    await _invoke('setAdLoadTimeout', {'timeoutMs': timeout});
     _log('[setAdLoadTimeout] 완료');
   }
 
@@ -220,7 +220,7 @@ class LuckieverseFlutter {
   static Future<void> setAdShowTimeout(Duration timeout) async {
     _log('[setAdShowTimeout] timeout=$timeout, isInitialized=$_isInitializeCompleted');
     _checkInitialization('setAdShowTimeout');
-    await _invoke('setAdShowTimeout', {'timeoutMs': timeout.inMilliseconds});
+    await _invoke('setAdShowTimeout', {'timeoutMs': timeout});
     _log('[setAdShowTimeout] 완료');
   }
 
