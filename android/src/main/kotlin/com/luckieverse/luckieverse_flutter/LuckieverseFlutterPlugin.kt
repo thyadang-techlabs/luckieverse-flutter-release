@@ -248,19 +248,25 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
       }
       "setAdLoadTimeout" -> {
         Log.d(TAG, "[setAdLoadTimeout] 호출됨, isInitializeCalled=$isInitializeCalled")
-        val timeoutMs = call.argument<Number>("timeoutMs")?.toLong()
-            ?: return result.error("bad_args", "Missing timeoutMs", null)
-        Log.d(TAG, "[setAdLoadTimeout] timeoutMs: $timeoutMs")
-        Luckieverse.instance().setAdLoadTimeout(timeoutMs)
+        val timeoutSeconds = call.argument<Number>("timeoutSeconds")?.toLong()
+            ?: return result.error("bad_args", "Missing timeoutSeconds", null)
+        if (timeoutSeconds <= 0) {
+          return result.error("bad_args", "timeoutSeconds must be positive", null)
+        }
+        Log.d(TAG, "[setAdLoadTimeout] timeoutSeconds: $timeoutSeconds")
+        Luckieverse.instance().setAdLoadTimeout(timeoutSeconds)
         Log.d(TAG, "[setAdLoadTimeout] 완료")
         result.success(null)
       }
       "setAdShowTimeout" -> {
         Log.d(TAG, "[setAdShowTimeout] 호출됨, isInitializeCalled=$isInitializeCalled")
-        val timeoutMs = call.argument<Number>("timeoutMs")?.toLong()
-            ?: return result.error("bad_args", "Missing timeoutMs", null)
-        Log.d(TAG, "[setAdShowTimeout] timeoutMs: $timeoutMs")
-        Luckieverse.instance().setShowLoadTimeout(timeoutMs)
+        val timeoutSeconds = call.argument<Number>("timeoutSeconds")?.toLong()
+            ?: return result.error("bad_args", "Missing timeoutSeconds", null)
+        if (timeoutSeconds <= 0) {
+          return result.error("bad_args", "timeoutSeconds must be positive", null)
+        }
+        Log.d(TAG, "[setAdShowTimeout] timeoutSeconds: $timeoutSeconds")
+        Luckieverse.instance().setShowLoadTimeout(timeoutSeconds)
         Log.d(TAG, "[setAdShowTimeout] 완료")
         result.success(null)
       }

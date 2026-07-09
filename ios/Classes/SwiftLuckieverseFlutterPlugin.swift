@@ -242,13 +242,17 @@ public class SwiftLuckieverseFlutterPlugin: NSObject, FlutterPlugin, FlutterStre
 
     case "setAdLoadTimeout":
       log("[setAdLoadTimeout] 호출됨, isInitializeCalled=\(isInitializeCalled)")
-      guard let args = call.arguments as? [String: Any], let timeoutMs = (args["timeoutMs"] as? NSNumber)?.doubleValue else {
-        log("[ERROR] setAdLoadTimeout: Missing timeoutMs")
-        result(FlutterError(code: "bad_args", message: "Missing timeoutMs", details: nil)); return
+      guard let args = call.arguments as? [String: Any], let timeoutSeconds = (args["timeoutSeconds"] as? NSNumber)?.doubleValue else {
+        log("[ERROR] setAdLoadTimeout: Missing timeoutSeconds")
+        result(FlutterError(code: "bad_args", message: "Missing timeoutSeconds", details: nil)); return
       }
-      log("[setAdLoadTimeout] timeoutMs: \(timeoutMs)")
+      guard timeoutSeconds > 0 else {
+        log("[ERROR] setAdLoadTimeout: timeoutSeconds must be positive")
+        result(FlutterError(code: "bad_args", message: "timeoutSeconds must be positive", details: nil)); return
+      }
+      log("[setAdLoadTimeout] timeoutSeconds: \(timeoutSeconds)")
       #if canImport(Luckieverse)
-      LuckieverseSDK.shared.setFullscreenAdLoadTimeout(timeoutMs / 1000.0)
+      LuckieverseSDK.shared.setFullscreenAdLoadTimeout(timeoutSeconds)
       log("[setAdLoadTimeout] 완료")
       result(nil)
       #else
@@ -257,13 +261,17 @@ public class SwiftLuckieverseFlutterPlugin: NSObject, FlutterPlugin, FlutterStre
 
     case "setAdShowTimeout":
       log("[setAdShowTimeout] 호출됨, isInitializeCalled=\(isInitializeCalled)")
-      guard let args = call.arguments as? [String: Any], let timeoutMs = (args["timeoutMs"] as? NSNumber)?.doubleValue else {
-        log("[ERROR] setAdShowTimeout: Missing timeoutMs")
-        result(FlutterError(code: "bad_args", message: "Missing timeoutMs", details: nil)); return
+      guard let args = call.arguments as? [String: Any], let timeoutSeconds = (args["timeoutSeconds"] as? NSNumber)?.doubleValue else {
+        log("[ERROR] setAdShowTimeout: Missing timeoutSeconds")
+        result(FlutterError(code: "bad_args", message: "Missing timeoutSeconds", details: nil)); return
       }
-      log("[setAdShowTimeout] timeoutMs: \(timeoutMs)")
+      guard timeoutSeconds > 0 else {
+        log("[ERROR] setAdShowTimeout: timeoutSeconds must be positive")
+        result(FlutterError(code: "bad_args", message: "timeoutSeconds must be positive", details: nil)); return
+      }
+      log("[setAdShowTimeout] timeoutSeconds: \(timeoutSeconds)")
       #if canImport(Luckieverse)
-      LuckieverseSDK.shared.setFullscreenAdShowTimeout(timeoutMs / 1000.0)
+      LuckieverseSDK.shared.setFullscreenAdShowTimeout(timeoutSeconds)
       log("[setAdShowTimeout] 완료")
       result(nil)
       #else

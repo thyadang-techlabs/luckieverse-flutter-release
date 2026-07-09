@@ -207,20 +207,40 @@ class LuckieverseFlutter {
   /// 전면(fullscreen) 광고 로드 타임아웃을 설정합니다. 기본값 40초.
   /// 유효 범위(Android: 1초~600초, iOS: 1초 이상 상한 없음)를 벗어난 값은
   /// 예외 없이 조용히 무시되고 이전 값이 유지됩니다.
-  static Future<void> setAdLoadTimeout(Duration timeout) async {
-    _log('[setAdLoadTimeout] timeout=$timeout, isInitialized=$_isInitializeCompleted');
+  ///
+  /// [timeoutSeconds]가 0 이하(음수 포함)이면 네이티브로 전달하지 않고
+  /// [ArgumentError]를 던집니다.
+  static Future<void> setAdLoadTimeout(int timeoutSeconds) async {
+    _log('[setAdLoadTimeout] timeoutSeconds=$timeoutSeconds, isInitialized=$_isInitializeCompleted');
+    if (timeoutSeconds <= 0) {
+      throw ArgumentError.value(
+        timeoutSeconds,
+        'timeoutSeconds',
+        'setAdLoadTimeout: timeoutSeconds는 0보다 커야 합니다.',
+      );
+    }
     _checkInitialization('setAdLoadTimeout');
-    await _invoke('setAdLoadTimeout', {'timeoutMs': timeout});
+    await _invoke('setAdLoadTimeout', {'timeoutSeconds': timeoutSeconds});
     _log('[setAdLoadTimeout] 완료');
   }
 
   /// 전면(fullscreen) 광고 표시(show) 타임아웃을 설정합니다. 기본값 180초.
   /// 유효 범위(Android: 1초~600초, iOS: 1초 이상 상한 없음)를 벗어난 값은
   /// 예외 없이 조용히 무시되고 이전 값이 유지됩니다.
-  static Future<void> setAdShowTimeout(Duration timeout) async {
-    _log('[setAdShowTimeout] timeout=$timeout, isInitialized=$_isInitializeCompleted');
+  ///
+  /// [timeoutSeconds]가 0 이하(음수 포함)이면 네이티브로 전달하지 않고
+  /// [ArgumentError]를 던집니다.
+  static Future<void> setAdShowTimeout(int timeoutSeconds) async {
+    _log('[setAdShowTimeout] timeoutSeconds=$timeoutSeconds, isInitialized=$_isInitializeCompleted');
+    if (timeoutSeconds <= 0) {
+      throw ArgumentError.value(
+        timeoutSeconds,
+        'timeoutSeconds',
+        'setAdShowTimeout: timeoutSeconds는 0보다 커야 합니다.',
+      );
+    }
     _checkInitialization('setAdShowTimeout');
-    await _invoke('setAdShowTimeout', {'timeoutMs': timeout});
+    await _invoke('setAdShowTimeout', {'timeoutSeconds': timeoutSeconds});
     _log('[setAdShowTimeout] 완료');
   }
 
