@@ -1,3 +1,7 @@
+## 2.1.6
+
+* `setAdShowTimeout`: 네이티브 SDK(Android/iOS)에서 show 타임아웃 안전장치가 완전히 제거됨에 따라 `@Deprecated`로 표시. API 시그니처, 파라미터 검증(`timeoutSeconds <= 0` 시 `ArgumentError`), 네이티브 호출은 하위 호환을 위해 그대로 유지되지만, 더 이상 실제 타임아웃 동작에는 영향을 주지 않음. `setAdLoadTimeout`(로드 타임아웃)은 영향 없이 정상 동작.
+
 ## 2.1.5
 
 * **BREAKING**: `setAdLoadTimeout`/`setAdShowTimeout`의 파라미터 타입을 `Duration`에서 `int timeoutSeconds`(초 단위)로 변경. Android(LuckyBiteAOS v2.1.9+)/iOS(LuckyVerseiOS) 네이티브 SDK의 공개 타임아웃 API가 이미 초 단위로 통일된 데 맞춘 변경.

@@ -224,12 +224,18 @@ class LuckieverseFlutter {
     _log('[setAdLoadTimeout] 완료');
   }
 
-  /// 전면(fullscreen) 광고 표시(show) 타임아웃을 설정합니다. 기본값 180초.
-  /// 유효 범위(Android: 1초~600초, iOS: 1초 이상 상한 없음)를 벗어난 값은
-  /// 예외 없이 조용히 무시되고 이전 값이 유지됩니다.
+  /// ⚠️ Deprecated: 네이티브 SDK(Android/iOS)에서 show 타임아웃 안전장치가
+  /// 완전히 제거되어, 이 메서드는 값을 네이티브에 저장만 할 뿐 더 이상
+  /// 실제 타임아웃 동작(광고 show 후 close 미응답 시 자동 실패 처리)에
+  /// 영향을 주지 않습니다. 기존 호출부가 깨지지 않도록 하위 호환을 위해
+  /// API와 파라미터 검증 로직은 그대로 유지됩니다.
   ///
   /// [timeoutSeconds]가 0 이하(음수 포함)이면 네이티브로 전달하지 않고
   /// [ArgumentError]를 던집니다.
+  @Deprecated(
+    '네이티브 SDK에서 show 타임아웃 메커니즘이 제거되어 더 이상 효과 없음. '
+    '값은 저장만 되고 실제 동작에 영향을 주지 않습니다.',
+  )
   static Future<void> setAdShowTimeout(int timeoutSeconds) async {
     _log('[setAdShowTimeout] timeoutSeconds=$timeoutSeconds, isInitialized=$_isInitializeCompleted');
     if (timeoutSeconds <= 0) {
