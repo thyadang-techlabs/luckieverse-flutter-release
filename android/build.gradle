@@ -13,15 +13,16 @@ repositories {
 
 android {
     namespace "com.luckieverse.luckieverse_flutter"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 23
-        targetSdk = 34
+        targetSdk = 36
         consumerProguardFiles "consumer-rules.pro"
     }
 
-    buildToolsVersion = "33.0.2"
+    // buildToolsVersion은 명시하지 않고 AGP 기본값(compileSdk에 맞춰 자동 선택)에 맡긴다.
+    // 이전에 명시했던 33.0.2/34.0.0도 AGP 8.7.3에 의해 조용히 다른 버전으로 대체되고 있었다.
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
