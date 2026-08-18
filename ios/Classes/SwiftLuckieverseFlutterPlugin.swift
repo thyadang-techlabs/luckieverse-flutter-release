@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import os.log
+import UserNotifications
 #if canImport(Luckieverse)
 import Luckieverse
 #endif
@@ -285,7 +286,11 @@ public class SwiftLuckieverseFlutterPlugin: NSObject, FlutterPlugin, FlutterStre
         result(FlutterError(code: "bad_args", message: "Missing zoneID", details: nil)); return
       }
       let callId = args["callId"] as? String
-      log("[showRVWithDynamicZoneID] zoneID: \(zoneID), callId: \(callId ?? "nil")")
+      // Dart 호출자가 onAdShowFail을 실제로 등록했을 때만 native onAdShowFail을 등록한다.
+      // Android AdManager.kt와 동일하게, 네이티브 onAdShowFail 파라미터는 optional(default nil)로
+      // 설계되어 있어 무조건 등록하면 구버전 호출부(onLoadFail만 등록)의 폴백 동작이 깨질 수 있다.
+      let hasOnAdShowFail = (args["hasOnAdShowFail"] as? Bool) ?? false
+      log("[showRVWithDynamicZoneID] zoneID: \(zoneID), callId: \(callId ?? "nil"), hasOnAdShowFail: \(hasOnAdShowFail)")
       #if canImport(Luckieverse)
       if let callId = callId {
         // 오버로드 + optional @convention(block) 클로저 추론 모호성을 피하기 위해
@@ -340,6 +345,12 @@ public class SwiftLuckieverseFlutterPlugin: NSObject, FlutterPlugin, FlutterStre
                                         "data": ["zoneId": adInfo.zoneId, "network": adInfo.network as Any, "adType": adInfo.adType as Any]]
           DispatchQueue.main.async { self?.eventSink?(payload) }
         }
+        let onAdShowFail: ((LuckieverseAdError) -> Void)? = hasOnAdShowFail ? { [weak self] adError in
+          self?.log("[showRVWithDynamicZoneID] onAdShowFail 콜백 실행됨, callId=\(callId)")
+          let payload: [String: Any] = ["channel": "rvCallback", "callId": callId, "event": "onAdShowFail",
+                                        "data": ["code": adError.code, "message": adError.message as Any]]
+          DispatchQueue.main.async { self?.eventSink?(payload) }
+        } : nil
         LuckieverseSDK.shared.showRVWithDynamicZoneID(
           zoneID,
           onLoadFail: onLoadFail,
@@ -350,13 +361,347 @@ public class SwiftLuckieverseFlutterPlugin: NSObject, FlutterPlugin, FlutterStre
           onAdShow: onAdShow,
           onAdSkip: onAdSkip,
           onAdClose: onAdClose,
-          onAdClick: onAdClick
+          onAdClick: onAdClick,
+          onAdShowFail: onAdShowFail
         )
       } else {
         LuckieverseSDK.shared.showRVWithDynamicZoneID(zoneID)
       }
       log("[showRVWithDynamicZoneID] 성공!")
       result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "getSdkVersion":
+      #if canImport(Luckieverse)
+      result(LuckieverseSDK.shared.getSDKVersion())
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "setSdkVersion":
+      guard let args = call.arguments as? [String: Any], let version = args["version"] as? String else {
+        result(FlutterError(code: "bad_args", message: "Missing version", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.setSDKVersion(version: version)
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "updateGameAppKey":
+      guard let args = call.arguments as? [String: Any], let appKey = args["appKey"] as? String else {
+        result(FlutterError(code: "bad_args", message: "Missing appKey", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.update_GAME_APP_KEY(APP_KEY: appKey)
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "enableBannerDebug":
+      guard let args = call.arguments as? [String: Any], let enable = args["enable"] as? Bool else {
+        result(FlutterError(code: "bad_args", message: "Missing enable", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.enableBannerDebug(enable)
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "enableFullScreenAdFailForTest":
+      guard let args = call.arguments as? [String: Any], let enable = args["enable"] as? Bool else {
+        result(FlutterError(code: "bad_args", message: "Missing enable", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.enableFullScreenAdFailForTest(enable)
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "setConsumableFullscreenZoneIds":
+      guard let args = call.arguments as? [String: Any], let zoneIds = args["zoneIds"] as? [String] else {
+        result(FlutterError(code: "bad_args", message: "Missing zoneIds", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.setConsumableFullscreenZoneIds(zoneIds)
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "setConsumableBannerZoneIds":
+      guard let args = call.arguments as? [String: Any], let zoneIds = args["zoneIds"] as? [String] else {
+        result(FlutterError(code: "bad_args", message: "Missing zoneIds", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.setConsumableBannerZoneIds(zoneIds)
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "updateBannerHeightLimit":
+      guard let args = call.arguments as? [String: Any], let height = (args["height"] as? NSNumber)?.doubleValue else {
+        result(FlutterError(code: "bad_args", message: "Missing height", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.updateBannerHeightLimit(CGFloat(height))
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "updateWebviewInspector":
+      guard let args = call.arguments as? [String: Any], let enabled = args["enabled"] as? Bool else {
+        result(FlutterError(code: "bad_args", message: "Missing enabled", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.updateWebviewInspector(enabled)
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "showFloatingButton":
+      #if canImport(Luckieverse)
+      // UIApplication.getCurrentViewController(base:)는 네이티브 SDK의
+      // .swiftinterface상 @MainActor로 격리되어 있다. 이 handle(_:result:)는
+      // non-isolated이지만 Flutter 채널 핸들러가 항상 메인 스레드에서 호출되므로
+      // 실제로는 이미 MainActor 컨텍스트에서 실행 중임을 MainActor.assumeIsolated로
+      // 명시한다 — 이 가정이 깨지면(예: 커스텀 TaskQueue 도입 등) 조용히 넘어가지
+      // 않고 런타임에 즉시 크래시하도록 해 문제를 조기에 드러낸다.
+      MainActor.assumeIsolated {
+        if let viewController = UIApplication.shared.getCurrentViewController() {
+          FloatingButtonManager.shared.showFloatingButton(on: viewController)
+          result(nil)
+        } else {
+          log("[ERROR] showFloatingButton: 현재 UIViewController를 찾을 수 없음")
+          result(FlutterError(code: "no_view_controller", message: "Could not resolve current UIViewController", details: nil))
+        }
+      }
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "hideFloatingButton":
+      #if canImport(Luckieverse)
+      FloatingButtonManager.shared.hideFloatingButton()
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "setLuckieverseLocalPush":
+      guard let args = call.arguments as? [String: Any],
+            let title = args["title"] as? String,
+            let body = args["body"] as? String,
+            let typeRaw = args["type"] as? Int else {
+        result(FlutterError(code: "bad_args", message: "Missing title/body/type", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      guard let type = LuckieverseLocalPushType(rawValue: typeRaw) else {
+        result(FlutterError(code: "bad_args", message: "Invalid type: \(typeRaw)", details: nil)); return
+      }
+      let repeats = args["repeats"] as? Bool ?? false
+      let intervalInSeconds = args["intervalInSeconds"] as? Int ?? 5
+      let soundName = args["soundName"] as? String
+      let sound: UNNotificationSound
+      if let soundName = soundName, !soundName.isEmpty {
+        sound = UNNotificationSound(named: UNNotificationSoundName(soundName))
+      } else {
+        sound = .default
+      }
+      let push = LuckieverseLocalPush(
+        title: title, body: body, type: type, repeats: repeats,
+        sound: sound, interverInSeconds: intervalInSeconds
+      )
+      LuckieverseSDK.shared.setLuckieverseLocalPush(push: push)
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "cancelLuckieverseLocalPush":
+      guard let args = call.arguments as? [String: Any], let typeRaw = args["pushType"] as? Int else {
+        result(FlutterError(code: "bad_args", message: "Missing pushType", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      guard let type = LuckieverseLocalPushType(rawValue: typeRaw) else {
+        result(FlutterError(code: "bad_args", message: "Invalid pushType: \(typeRaw)", details: nil)); return
+      }
+      LuckieverseSDK.shared.cancelLuckieverseLocalPush(pushType: type)
+      result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseMyPage":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseMyPage(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseSajuInfo":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseSajuInfo(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieversePhoneAuth":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieversePhoneAuth(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieversePointHistory":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieversePointHistory(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseProductHistory":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseProductHistory(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseProductHistoryDetail":
+      guard let args = call.arguments as? [String: Any], let id = args["id"] as? String else {
+        result(FlutterError(code: "bad_args", message: "Missing id", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseProductHistoryDetail(id: id); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseFaq":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseFaq(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseFaqDetail":
+      // iOS 네이티브(openLuckieverseFaqDetail(id:))는 id가 필수 파라미터다.
+      guard let args = call.arguments as? [String: Any], let id = args["id"] as? String else {
+        result(FlutterError(code: "bad_args", message: "Missing id (iOS에서는 id가 필수입니다)", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseFaqDetail(id: id); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseInquiry":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseInquiry(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseInquiryHistory":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseInquiryHistory(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseInquiryHistoryDetail":
+      guard let args = call.arguments as? [String: Any], let id = args["id"] as? String else {
+        result(FlutterError(code: "bad_args", message: "Missing id", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseInquiryHistoryDetail(id: id); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseTermsAndPolicies":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseTermsAndPolicies(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseTermsAndPoliciesDetail":
+      // iOS 네이티브(openLuckieverseTermsAndPoliciesDetail(id:))는 id가 필수 파라미터다.
+      guard let args = call.arguments as? [String: Any], let id = args["id"] as? String else {
+        result(FlutterError(code: "bad_args", message: "Missing id (iOS에서는 id가 필수입니다)", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseTermsAndPoliciesDetail(id: id); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseProductStore":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseProductStore(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseProductStoreDetail":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseProductStoreDetail(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseError":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseError(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openFaceReading":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openFaceReading(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "checkGoogleAdmobWebviewAPI":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.checkGoogleAdmobWebviewAPI(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openEmail":
+      let toAddress = (call.arguments as? [String: Any])?["toAddress"] as? String
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openEmailApp(recipient: toAddress); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseGame":
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseGame(); result(nil)
+      #else
+      result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
+      #endif
+
+    case "openLuckieverseGameByPush":
+      guard let args = call.arguments as? [String: Any], let pushKey = args["pushKey"] as? String else {
+        result(FlutterError(code: "bad_args", message: "Missing pushKey", details: nil)); return
+      }
+      #if canImport(Luckieverse)
+      LuckieverseSDK.shared.openLuckieverseGameByPush(pushKey: pushKey); result(nil)
       #else
       result(FlutterError(code: "unavailable", message: "Luckieverse.xcframework not integrated", details: nil))
       #endif

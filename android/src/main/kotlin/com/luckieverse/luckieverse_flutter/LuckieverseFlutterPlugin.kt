@@ -12,6 +12,10 @@ import io.flutter.plugin.common.EventChannel
 import com.techlabs.luckieverse.core.Luckieverse
 import com.techlabs.luckieverse.ad.LuckieverseAdInfo
 import com.techlabs.luckieverse.ad.LuckieverseAdError
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.startCoroutine
 
 class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware, EventChannel.StreamHandler {
   private lateinit var channel: MethodChannel
@@ -283,7 +287,12 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
           return result.error("no_activity", "Activity is not attached", null)
         }
         val callId = call.argument<String>("callId")
-        Log.d(TAG, "[showRVWithDynamicZoneID] zoneID: $zoneID, callId: $callId")
+        // Dart 호출자가 onAdShowFail을 실제로 등록했을 때만 native onAdShowFail을 등록한다.
+        // 무조건 등록하면, native(AdManager.kt)의 "host가 onShowFailAd를 등록하지 않으면
+        // onLoadFailAd 폴백을 발화한다"는 설계가 깨져 onLoadFail만 등록한 구버전 호출부가
+        // show 실패 통지를 아예 못 받는 회귀가 생긴다.
+        val hasOnAdShowFail = call.argument<Boolean>("hasOnAdShowFail") ?: false
+        Log.d(TAG, "[showRVWithDynamicZoneID] zoneID: $zoneID, callId: $callId, hasOnAdShowFail: $hasOnAdShowFail")
         try {
           if (callId != null) {
             Luckieverse.instance().showRVWithDynamicZoneID(
@@ -319,7 +328,11 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
               onAdClose = { adInfo ->
                 emitRvEvent(callId, "onAdClose",
                     mapOf("zoneId" to adInfo.zoneId, "network" to adInfo.network, "adType" to adInfo.adType))
-              }
+              },
+              onAdShowFail = if (hasOnAdShowFail) { adError ->
+                emitRvEvent(callId, "onAdShowFail",
+                    mapOf("code" to adError.code, "message" to adError.message))
+              } else null
             )
           } else {
             Luckieverse.instance().showRVWithDynamicZoneID(activity, zoneID)
@@ -331,6 +344,256 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
           Log.e(TAG, "[showRVWithDynamicZoneID] 스택트레이스:", e)
           result.error("ad_error", e.message, e.stackTraceToString())
         }
+      }
+      "getSdkVersion" -> {
+        result.success(Luckieverse.instance().getSdkVersion())
+      }
+      "setSdkVersion" -> {
+        val version = call.argument<String>("version") ?: return result.error("bad_args", "Missing version", null)
+        Luckieverse.instance().setSdkVersion(version)
+        result.success(null)
+      }
+      "getAdLoadTimeout" -> {
+        result.success(Luckieverse.instance().getAdLoadTimeout())
+      }
+      "getShowLoadTimeout" -> {
+        result.success(Luckieverse.instance().getShowLoadTimeout())
+      }
+      "setFullScreenAdZoneIdForSaju" -> {
+        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
+        @Suppress("DEPRECATION")
+        Luckieverse.instance().setFullScreenAdZoneIdForSaju(zoneId)
+        result.success(null)
+      }
+      "setFullScreenAdZoneIdForNotSaju" -> {
+        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
+        @Suppress("DEPRECATION")
+        Luckieverse.instance().setFullScreenAdZoneIdForNotSaju(zoneId)
+        result.success(null)
+      }
+      "setFullScreenAdZoneIdForFortuneCookie" -> {
+        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
+        @Suppress("DEPRECATION")
+        Luckieverse.instance().setFullScreenAdZoneIdForFortuneCookie(zoneId)
+        result.success(null)
+      }
+      "getFullScreenAdZoneIdForSaju" -> {
+        result.success(Luckieverse.instance().getFullScreenAdZoneIdForSaju())
+      }
+      "getFullScreenAdZoneIdForNotSaju" -> {
+        result.success(Luckieverse.instance().getFullScreenAdZoneIdForNotSaju())
+      }
+      "getFullScreenAdZoneIdForFortuneCookie" -> {
+        result.success(Luckieverse.instance().getFullScreenAdZoneIdForFortuneCookie())
+      }
+      "setBannerAdZoneIdForSaju" -> {
+        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
+        @Suppress("DEPRECATION")
+        Luckieverse.instance().setBannerAdZoneIdForSaju(zoneId)
+        result.success(null)
+      }
+      "setBannerAdZoneIdForNotSaju" -> {
+        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
+        @Suppress("DEPRECATION")
+        Luckieverse.instance().setBannerAdZoneIdForNotSaju(zoneId)
+        result.success(null)
+      }
+      "setBannerAdZoneIdForFortuneCookie" -> {
+        val zoneId = call.argument<String>("zoneId") ?: return result.error("bad_args", "Missing zoneId", null)
+        @Suppress("DEPRECATION")
+        Luckieverse.instance().setBannerAdZoneIdForFortuneCookie(zoneId)
+        result.success(null)
+      }
+      "getBannerAdZoneIdForSaju" -> {
+        result.success(Luckieverse.instance().getBannerAdZoneIdForSaju())
+      }
+      "getBannerAdZoneIdForNotSaju" -> {
+        result.success(Luckieverse.instance().getBannerAdZoneIdForNotSaju())
+      }
+      "getBannerAdZoneIdForFortuneCookie" -> {
+        result.success(Luckieverse.instance().getBannerAdZoneIdForFortuneCookie())
+      }
+      "getShouldExposeContent" -> {
+        result.success(Luckieverse.instance().getShouldExposeContent())
+      }
+      "getSDKInfo" -> {
+        val activity = activityBinding?.activity
+        if (activity == null) {
+          return result.error("no_activity", "Activity is not attached", null)
+        }
+        result.success(Luckieverse.instance().getSDKInfo(activity))
+      }
+      "getContentLandingUrl" -> {
+        val contentsId = call.argument<String>("contentsId") ?: return result.error("bad_args", "Missing contentsId", null)
+        // contentsId/url 자체는 로그에 남기지 않는다 (release 빌드에서도 제거되지 않음 —
+        // consumer-rules.pro가 비어있어 Log.d가 스트립되지 않으므로 값 노출을 코드에서 방지).
+        Log.d(TAG, "[getContentLandingUrl] 호출됨")
+        val completion = object : Continuation<String> {
+          override val context: CoroutineContext = EmptyCoroutineContext
+          override fun resumeWith(callResult: kotlin.Result<String>) {
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+              callResult.fold(
+                onSuccess = { url ->
+                  Log.d(TAG, "[getContentLandingUrl] 성공")
+                  result.success(url)
+                },
+                onFailure = { e ->
+                  Log.e(TAG, "[getContentLandingUrl] 예외 발생: ${e.message}", e)
+                  result.error("content_error", e.message, e.stackTraceToString())
+                },
+              )
+            }
+          }
+        }
+        val block: suspend () -> String = { Luckieverse.instance().getContentLandingUrl(contentsId) }
+        block.startCoroutine(completion)
+      }
+      "updateGameAppKey" -> {
+        val appKey = call.argument<String>("appKey") ?: return result.error("bad_args", "Missing appKey", null)
+        Luckieverse.instance().updateGameAppKey(appKey)
+        result.success(null)
+      }
+      "enableBannerDebug" -> {
+        val enable = call.argument<Boolean>("enable") ?: return result.error("bad_args", "Missing enable", null)
+        Luckieverse.instance().enableBannerDebug(enable)
+        result.success(null)
+      }
+      "enableFullScreenAdFailForTest" -> {
+        val enable = call.argument<Boolean>("enable") ?: return result.error("bad_args", "Missing enable", null)
+        Luckieverse.instance().enableMakeFullScreenAdFailForTest(enable)
+        result.success(null)
+      }
+      "openLuckieverseMyPage" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseMyPage(activity)
+        result.success(null)
+      }
+      "openLuckieverseSajuInfo" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseSajuInfo(activity)
+        result.success(null)
+      }
+      "openLuckieversePhoneAuth" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieversePhoneAuth(activity)
+        result.success(null)
+      }
+      "openLuckieversePointHistory" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieversePointHistory(activity)
+        result.success(null)
+      }
+      "openLuckieverseProductHistory" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseProductHistory(activity)
+        result.success(null)
+      }
+      "openLuckieverseProductHistoryDetail" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        val id = call.argument<String>("id") ?: return result.error("bad_args", "Missing id", null)
+        Luckieverse.instance().openLuckieverseProductHistoryDetail(activity, id)
+        result.success(null)
+      }
+      "openLuckieverseFaq" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseFaq(activity)
+        result.success(null)
+      }
+      "openLuckieverseFaqDetail" -> {
+        // Android 네이티브(openLuckieverseFaqDetail(activity))는 id 파라미터를 받지 않는다.
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseFaqDetail(activity)
+        result.success(null)
+      }
+      "openLuckieverseInquiry" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseInquiry(activity)
+        result.success(null)
+      }
+      "openLuckieverseInquiryHistory" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseInquiryHistory(activity)
+        result.success(null)
+      }
+      "openLuckieverseInquiryHistoryDetail" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        val id = call.argument<String>("id") ?: return result.error("bad_args", "Missing id", null)
+        Luckieverse.instance().openLuckieverseInquiryHistoryDetail(activity, id)
+        result.success(null)
+      }
+      "openLuckieverseTermsAndPolicies" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseTermsAndPolicies(activity)
+        result.success(null)
+      }
+      "openLuckieverseTermsAndPoliciesDetail" -> {
+        // Android 네이티브(openLuckieverseTermsAndPoliciesDetail(activity))는 id 파라미터를 받지 않는다.
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseTermsAndPoliciesDetail(activity)
+        result.success(null)
+      }
+      "openLuckieverseProductStore" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseProductStore(activity)
+        result.success(null)
+      }
+      "openLuckieverseProductStoreDetail" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseProductStoreDetail(activity)
+        result.success(null)
+      }
+      "openLuckieverseError" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseError(activity)
+        result.success(null)
+      }
+      "openFaceReading" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openFaceReading(activity)
+        result.success(null)
+      }
+      "checkGoogleAdmobWebviewAPI" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().checkGoogleAdmobWebviewAPI(activity)
+        result.success(null)
+      }
+      "openEmail" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        val toAddress = call.argument<String>("toAddress")
+        Luckieverse.instance().openEmail(activity, toAddress)
+        result.success(null)
+      }
+      "openLuckieverseGame" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseGame(activity)
+        result.success(null)
+      }
+      "openLuckieverseGameByPush" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        val pushKey = call.argument<String>("pushKey") ?: return result.error("bad_args", "Missing pushKey", null)
+        Luckieverse.instance().openLuckieverseGameByPush(activity, pushKey)
+        result.success(null)
       }
       else -> {
         Log.w(TAG, "알 수 없는 메서드: ${call.method}")

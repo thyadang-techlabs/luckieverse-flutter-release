@@ -1,3 +1,30 @@
+## 2.3.0
+
+* 네이티브 SDK(Android v2.1.25 / iOS Luckieverse 2.8.2)가 노출하는 공개 API 중 브릿지에 없던 항목을 대거 추가. 기존 17개 API의 시그니처/동작은 변경하지 않음(순수 추가, minor 버전업).
+* **공통(Android/iOS)**:
+  * `getSdkVersion()` / `setSdkVersion(version)`
+  * `updateGameAppKey(appKey)`, `enableBannerDebug(enable)`, `enableFullScreenAdFailForTest(enable)`
+  * 화면 오픈 API 12종: `openLuckieverseMyPage`, `openLuckieverseSajuInfo`, `openLuckieversePhoneAuth`, `openLuckieversePointHistory`, `openLuckieverseProductHistory`, `openLuckieverseProductHistoryDetail(id)`, `openLuckieverseFaq`, `openLuckieverseFaqDetail({id})`, `openLuckieverseInquiry`, `openLuckieverseInquiryHistory`, `openLuckieverseInquiryHistoryDetail(id)`, `openLuckieverseTermsAndPolicies`, `openLuckieverseTermsAndPoliciesDetail({id})`, `openLuckieverseProductStore`, `openLuckieverseProductStoreDetail`, `openLuckieverseError`
+  * `openFaceReading()`, `checkGoogleAdmobWebviewAPI()`, `openEmail({toAddress})`(Android `openEmail`/iOS `openEmailApp` 통합), `openLuckieverseGame()`, `openLuckieverseGameByPush(pushKey)`
+  * **플랫폼 비대칭 주의**: `openLuckieverseFaqDetail`/`openLuckieverseTermsAndPoliciesDetail`은 iOS 네이티브만 `id`가 필수이고 Android 네이티브는 `id`를 받지 않는다. Dart에서는 `id`를 optional named 파라미터로 두고, iOS에서 생략 시 `ArgumentError`를 던진다.
+  * `showRVWithDynamicZoneID`에 `onAdShowFail` 콜백 파라미터 추가. 광고 show 단계 실패를 알리는 terminal 콜백이며, Android/iOS 네이티브 모두 대응 파라미터가 이미 존재함을 확인 후 배선. **하위 호환은 네이티브에 등록 여부를 조건부로 전달하는 방식으로 보장**한다 — Dart에서 `onAdShowFail`을 지정하지 않으면 native에는 아예 등록하지 않는다(무조건 등록하면, 네이티브 `AdManager.kt`가 "host가 onShowFailAd를 등록하지 않았을 때만 onLoadFailAd 폴백을 발화"하도록 설계되어 있어, 기존에 `onLoadFail`만 등록한 호출부가 show 실패를 아예 통지받지 못하는 조용한 회귀가 발생함을 확인했고 이를 수정함).
+* **Android 전용** (iOS 네이티브에 대응 API가 없어 호출 시 `UnsupportedError`):
+  * `getAdLoadTimeout()`, `getShowLoadTimeout()`(iOS는 setter만 존재, getter 없음)
+  * 광고 존 아이디 개별 setter/getter 12종: `set/getFullScreenAdZoneIdForSaju|ForNotSaju|ForFortuneCookie`, `set/getBannerAdZoneIdForSaju|ForNotSaju|ForFortuneCookie` (setter들은 네이티브에서 이미 `@Deprecated`로 no-op 처리되어 Dart 측도 동일하게 `@Deprecated` 표시)
+  * `getShouldExposeContent()`, `getSDKInfo()`(nullable), `getContentLandingUrl(contentsId)`(네이티브 suspend 함수를 코루틴 없이 `kotlin.coroutines.startCoroutine`으로 브릿징). ⚠️ **`getContentLandingUrl`은 네이티브 SDK가 개발 서버(`luckybite-dev.adop.co.kr`)를 하드코딩하고 있음을 확인**했다(네이티브 주석에 "실제 API 서버 주소로 변경 필요"라고 명시됨). 호출 시 앱 키/사용자 ID가 이 개발 서버로 전송되므로, 네이티브 SDK가 프로덕션 서버로 전환되기 전까지 프로덕션 앱에서 사용하지 말 것 — Dart doc과 `GUIDE.md`에 경고 추가. 또한 네이티브 `NetworkManager.post`가 네트워크 실패 시에도 예외를 삼키고 빈 문자열을 반환하는 것을 확인해, Dart 측에서 빈 문자열 응답을 `Exception`으로 변환하도록 처리.
+* **iOS 전용** (Android 네이티브에 대응 API가 없어 호출 시 `UnsupportedError`):
+  * `setConsumableFullscreenZoneIds(zoneIds)` / `setConsumableBannerZoneIds(zoneIds)` — iOS는 Android처럼 개별 setter가 아니라 배열 기반 API라 1:1로 합치지 않고 별도로 노출.
+  * `updateBannerHeightLimit(height)`, `updateWebviewInspector(enabled)`
+  * `showFloatingButton()` / `hideFloatingButton()` — iOS 네이티브에서 현재 최상단 `UIViewController`를 자동으로 획득해 전달.
+  * `setLuckieverseLocalPush(LuckieverseLocalPush)` / `cancelLuckieverseLocalPush(LuckieverseLocalPushType)` — Android는 네이티브 SDK에서 해당 기능이 주석 처리되어 비활성화 상태라 iOS 전용으로만 구현. `LuckieverseLocalPush`/`LuckieverseLocalPushType` Dart 모델 신설(`soundName` 생략 시 iOS 기본 알림음 사용).
+* **구현하지 않음**: iOS `makeUIViewController`/`updateUIViewController`/`getCurrentViewController`(SwiftUI 내부 구현용), Android `createFloatingButtonXML`/`createFloatingButtonCompose`·iOS `setFloatingButton(viewController:show:)`(네이티브 View 객체 반환/요구, PlatformView 없이 브릿징 불가), iOS `setGoToSettingObjc`/`setGoToSettingSwift`(이미 `setGoToSettingCallback`으로 노출됨), Android `instance()` 및 `internal` 함수 전부.
+* `test/luckieverse_flutter_test.dart`에 신규 API 전체에 대한 단위 테스트 40개 추가(기존 12개 유지, 총 52개). 플랫폼 분기(`defaultTargetPlatform` override), 반환값 타입 불일치, native 실패, 플랫폼 비대칭 `ArgumentError`, 이모지/빈 문자열 등 엣지 케이스 포함.
+* 검수 후속 조치 (위험도 높음/중간):
+  * `android/build.gradle`에 `kotlinx-coroutines-android:1.7.1`을 명시적으로 선언. `libs/luckieverse.jar`가 raw jar 의존이라 전이 의존성이 해석되지 않는데, 네이티브 `NetworkManager`가 `kotlinx.coroutines`(`withContext(Dispatchers.IO)`)를 사용함에도 불구하고 `kotlinx-coroutines-android`는 Flutter 임베딩 경로로 우연히 딸려오는 전이 의존성으로만 classpath에 있었음을 확인. Flutter 임베딩 구성 변경 시 `NoClassDefFoundError`로 조용히 깨질 수 있어 명시 선언으로 고정.
+  * iOS `showFloatingButton`에서 `@MainActor`로 격리된 네이티브 `getCurrentViewController(base:)`를 non-isolated 컨텍스트에서 동기 호출하던 부분을 `MainActor.assumeIsolated`로 명시적으로 감쌈. 현재는 Flutter 채널 핸들러가 항상 메인 스레드에서 호출되어 크래시가 없었지만, Swift 6 strict concurrency 전환 시 컴파일 에러가 되는 문제를 예방하고 의도를 코드에 드러냄.
+  * Android `getContentLandingUrl` 브릿지 로그에서 `contentsId`/`url` 값 자체를 제거(호출/성공 사실만 로깅). `consumer-rules.pro`가 비어 있어 release 빌드에서도 로그가 스트립되지 않아 값이 그대로 남는 문제였음.
+  * `openEmail`의 `toAddress`에 개행(`\r`, `\n`) 등 제어문자가 포함되면 `ArgumentError`를 던지도록 검증 추가(메일 헤더 인젝션 방지).
+
 ## 2.2.2
 
 * Android 네이티브 SDK를 v2.1.24 → v2.1.25로 갱신. `sdk_spec.txt`와 `Luckieverse` 클래스 구현부만 변경되었으며 공개 API 시그니처는 동일하므로 Kotlin/Dart 측 코드 변경 없음.

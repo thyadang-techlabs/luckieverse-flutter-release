@@ -36,6 +36,63 @@ class LuckieverseAdError {
   }
 }
 
+/// iOS 전용 로컬 푸시 종류. Android는 이 기능 자체를 지원하지 않는다
+/// (네이티브 SDK에서 주석 처리되어 비활성화됨).
+enum LuckieverseLocalPushType {
+  main(876663),
+  my(876664),
+  sajuInfo(876665),
+  phoneAuth(876666),
+  pointHistory(876667),
+  productHistory(876668),
+  productHistoryDetail(876669),
+  faq(876670),
+  faqDetail(876671),
+  inquiry(876672),
+  inquiryHistory(876673),
+  inquiryHistoryDetail(876674),
+  termsAndPolicies(876675),
+  termsAndPoliciesDetail(876676),
+  productStore(876677),
+  productStoreDetail(876678),
+  error(876679);
+
+  const LuckieverseLocalPushType(this.value);
+  final int value;
+}
+
+/// iOS 전용 로컬 푸시 예약 정보. [LuckieverseFlutter.setLuckieverseLocalPush]에 사용된다.
+///
+/// [soundName]을 지정하지 않으면 iOS 네이티브가 시스템 기본 알림음(`.default`)을 사용한다.
+/// [soundName]을 지정했더라도 호스트 앱 번들에 해당 이름의 사운드 파일이 없으면,
+/// iOS는 에러 없이 조용히 시스템 기본 알림음으로 대체한다(런타임에 이를 알 방법이 없음).
+class LuckieverseLocalPush {
+  final String title;
+  final String body;
+  final LuckieverseLocalPushType type;
+  final bool repeats;
+  final int intervalInSeconds;
+  final String? soundName;
+
+  const LuckieverseLocalPush({
+    required this.title,
+    required this.body,
+    required this.type,
+    this.repeats = false,
+    this.intervalInSeconds = 5,
+    this.soundName,
+  });
+
+  Map<String, dynamic> toMap() => {
+        'title': title,
+        'body': body,
+        'type': type.value,
+        'repeats': repeats,
+        'intervalInSeconds': intervalInSeconds,
+        'soundName': soundName,
+      };
+}
+
 class LuckieverseFlutter {
   static const MethodChannel _channel = MethodChannel('luckieverse_flutter');
   static const EventChannel _eventChannel = EventChannel('luckieverse_flutter/events');
@@ -204,6 +261,516 @@ class LuckieverseFlutter {
     _log('[openNewYearFortune] 완료');
   }
 
+  // ── 플랫폼 판별 헬퍼 ───────────────────────────────────────────────
+  // 테스트 환경에서 재현 가능하도록 dart:io Platform 대신 defaultTargetPlatform을
+  // 사용한다 (flutter test는 FLUTTER_TEST 환경변수로 기본값이 android가 됨).
+  static bool get _isAndroid => defaultTargetPlatform == TargetPlatform.android;
+  static bool get _isIOS => defaultTargetPlatform == TargetPlatform.iOS;
+
+  static void _requireAndroid(String methodName) {
+    if (!_isAndroid) {
+      throw UnsupportedError('$methodName은(는) Android 전용 API입니다.');
+    }
+  }
+
+  static void _requireIOS(String methodName) {
+    if (!_isIOS) {
+      throw UnsupportedError('$methodName은(는) iOS 전용 API입니다.');
+    }
+  }
+
+  // ── SDK 버전 (Android/iOS 공통) ─────────────────────────────────────
+
+  /// 네이티브 SDK 버전 문자열을 반환합니다.
+  static Future<String> getSdkVersion() async {
+    _checkInitialization('getSdkVersion');
+    final result = await _invokeRaw('getSdkVersion');
+    if (result is! String) {
+      throw Exception(
+        'LuckieverseFlutter.getSdkVersion: unexpected return type ${result.runtimeType}',
+      );
+    }
+    return result;
+  }
+
+  /// 네이티브 SDK 버전 문자열을 덮어씁니다. (주로 테스트/진단용)
+  static Future<void> setSdkVersion(String version) async {
+    _checkInitialization('setSdkVersion');
+    await _invoke('setSdkVersion', {'version': version});
+  }
+
+  // ── 광고 타임아웃 조회 (Android 전용) ────────────────────────────────
+  // iOS 네이티브 SDK는 setFullscreenAdLoadTimeout/setFullscreenAdShowTimeout만
+  // 노출하고 대응하는 getter가 없다.
+
+  /// 현재 설정된 전면 광고 로드 타임아웃(초)을 반환합니다. **Android 전용.**
+  static Future<int> getAdLoadTimeout() async {
+    _requireAndroid('getAdLoadTimeout');
+    _checkInitialization('getAdLoadTimeout');
+    final result = await _invokeRaw('getAdLoadTimeout');
+    if (result is! int) {
+      throw Exception(
+        'LuckieverseFlutter.getAdLoadTimeout: unexpected return type ${result.runtimeType}',
+      );
+    }
+    return result;
+  }
+
+  /// ⚠️ Deprecated: show 타임아웃 메커니즘이 제거되어 저장된 값만 반환하며
+  /// 실제 동작에는 영향을 주지 않습니다. **Android 전용.**
+  static Future<int> getShowLoadTimeout() async {
+    _requireAndroid('getShowLoadTimeout');
+    _checkInitialization('getShowLoadTimeout');
+    final result = await _invokeRaw('getShowLoadTimeout');
+    if (result is! int) {
+      throw Exception(
+        'LuckieverseFlutter.getShowLoadTimeout: unexpected return type ${result.runtimeType}',
+      );
+    }
+    return result;
+  }
+
+  // ── 광고 존 아이디 (Android 전용, 개별 setter/getter) ─────────────────
+  // iOS는 setConsumableFullscreenZoneIds/setConsumableBannerZoneIds(배열)로
+  // 모델이 완전히 달라 1:1로 합치지 않고 각각 노출한다.
+
+  @Deprecated(
+    '네이티브 SDK에서 더 이상 사용되지 않는 API입니다. 아무 동작도 하지 않습니다(no-op). '
+    '존 아이디는 네이티브 내부에서 자동으로 설정됩니다.',
+  )
+  static Future<void> setFullScreenAdZoneIdForSaju(String zoneId) async {
+    _requireAndroid('setFullScreenAdZoneIdForSaju');
+    _checkInitialization('setFullScreenAdZoneIdForSaju');
+    await _invoke('setFullScreenAdZoneIdForSaju', {'zoneId': zoneId});
+  }
+
+  @Deprecated(
+    '네이티브 SDK에서 더 이상 사용되지 않는 API입니다. 아무 동작도 하지 않습니다(no-op). '
+    '존 아이디는 네이티브 내부에서 자동으로 설정됩니다.',
+  )
+  static Future<void> setFullScreenAdZoneIdForNotSaju(String zoneId) async {
+    _requireAndroid('setFullScreenAdZoneIdForNotSaju');
+    _checkInitialization('setFullScreenAdZoneIdForNotSaju');
+    await _invoke('setFullScreenAdZoneIdForNotSaju', {'zoneId': zoneId});
+  }
+
+  @Deprecated(
+    '네이티브 SDK에서 더 이상 사용되지 않는 API입니다. 아무 동작도 하지 않습니다(no-op). '
+    '존 아이디는 네이티브 내부에서 자동으로 설정됩니다.',
+  )
+  static Future<void> setFullScreenAdZoneIdForFortuneCookie(String zoneId) async {
+    _requireAndroid('setFullScreenAdZoneIdForFortuneCookie');
+    _checkInitialization('setFullScreenAdZoneIdForFortuneCookie');
+    await _invoke('setFullScreenAdZoneIdForFortuneCookie', {'zoneId': zoneId});
+  }
+
+  /// **Android 전용.**
+  static Future<String> getFullScreenAdZoneIdForSaju() async {
+    _requireAndroid('getFullScreenAdZoneIdForSaju');
+    _checkInitialization('getFullScreenAdZoneIdForSaju');
+    final result = await _invokeRaw('getFullScreenAdZoneIdForSaju');
+    if (result is! String) {
+      throw Exception(
+        'LuckieverseFlutter.getFullScreenAdZoneIdForSaju: unexpected return type ${result.runtimeType}',
+      );
+    }
+    return result;
+  }
+
+  /// **Android 전용.**
+  static Future<String> getFullScreenAdZoneIdForNotSaju() async {
+    _requireAndroid('getFullScreenAdZoneIdForNotSaju');
+    _checkInitialization('getFullScreenAdZoneIdForNotSaju');
+    final result = await _invokeRaw('getFullScreenAdZoneIdForNotSaju');
+    if (result is! String) {
+      throw Exception(
+        'LuckieverseFlutter.getFullScreenAdZoneIdForNotSaju: unexpected return type ${result.runtimeType}',
+      );
+    }
+    return result;
+  }
+
+  /// **Android 전용.**
+  static Future<String> getFullScreenAdZoneIdForFortuneCookie() async {
+    _requireAndroid('getFullScreenAdZoneIdForFortuneCookie');
+    _checkInitialization('getFullScreenAdZoneIdForFortuneCookie');
+    final result = await _invokeRaw('getFullScreenAdZoneIdForFortuneCookie');
+    if (result is! String) {
+      throw Exception(
+        'LuckieverseFlutter.getFullScreenAdZoneIdForFortuneCookie: unexpected return type ${result.runtimeType}',
+      );
+    }
+    return result;
+  }
+
+  @Deprecated(
+    '네이티브 SDK에서 더 이상 사용되지 않는 API입니다. 아무 동작도 하지 않습니다(no-op). '
+    '존 아이디는 네이티브 내부에서 자동으로 설정됩니다.',
+  )
+  static Future<void> setBannerAdZoneIdForSaju(String zoneId) async {
+    _requireAndroid('setBannerAdZoneIdForSaju');
+    _checkInitialization('setBannerAdZoneIdForSaju');
+    await _invoke('setBannerAdZoneIdForSaju', {'zoneId': zoneId});
+  }
+
+  @Deprecated(
+    '네이티브 SDK에서 더 이상 사용되지 않는 API입니다. 아무 동작도 하지 않습니다(no-op). '
+    '존 아이디는 네이티브 내부에서 자동으로 설정됩니다.',
+  )
+  static Future<void> setBannerAdZoneIdForNotSaju(String zoneId) async {
+    _requireAndroid('setBannerAdZoneIdForNotSaju');
+    _checkInitialization('setBannerAdZoneIdForNotSaju');
+    await _invoke('setBannerAdZoneIdForNotSaju', {'zoneId': zoneId});
+  }
+
+  @Deprecated(
+    '네이티브 SDK에서 더 이상 사용되지 않는 API입니다. 아무 동작도 하지 않습니다(no-op). '
+    '존 아이디는 네이티브 내부에서 자동으로 설정됩니다.',
+  )
+  static Future<void> setBannerAdZoneIdForFortuneCookie(String zoneId) async {
+    _requireAndroid('setBannerAdZoneIdForFortuneCookie');
+    _checkInitialization('setBannerAdZoneIdForFortuneCookie');
+    await _invoke('setBannerAdZoneIdForFortuneCookie', {'zoneId': zoneId});
+  }
+
+  /// **Android 전용.**
+  static Future<String> getBannerAdZoneIdForSaju() async {
+    _requireAndroid('getBannerAdZoneIdForSaju');
+    _checkInitialization('getBannerAdZoneIdForSaju');
+    final result = await _invokeRaw('getBannerAdZoneIdForSaju');
+    if (result is! String) {
+      throw Exception(
+        'LuckieverseFlutter.getBannerAdZoneIdForSaju: unexpected return type ${result.runtimeType}',
+      );
+    }
+    return result;
+  }
+
+  /// **Android 전용.**
+  static Future<String> getBannerAdZoneIdForNotSaju() async {
+    _requireAndroid('getBannerAdZoneIdForNotSaju');
+    _checkInitialization('getBannerAdZoneIdForNotSaju');
+    final result = await _invokeRaw('getBannerAdZoneIdForNotSaju');
+    if (result is! String) {
+      throw Exception(
+        'LuckieverseFlutter.getBannerAdZoneIdForNotSaju: unexpected return type ${result.runtimeType}',
+      );
+    }
+    return result;
+  }
+
+  /// **Android 전용.**
+  static Future<String> getBannerAdZoneIdForFortuneCookie() async {
+    _requireAndroid('getBannerAdZoneIdForFortuneCookie');
+    _checkInitialization('getBannerAdZoneIdForFortuneCookie');
+    final result = await _invokeRaw('getBannerAdZoneIdForFortuneCookie');
+    if (result is! String) {
+      throw Exception(
+        'LuckieverseFlutter.getBannerAdZoneIdForFortuneCookie: unexpected return type ${result.runtimeType}',
+      );
+    }
+    return result;
+  }
+
+  /// iOS 전용 배열 기반 존 아이디 설정. Android는 개별 setter
+  /// (`setFullScreenAdZoneIdForSaju` 등)를 사용해야 합니다. **iOS 전용.**
+  static Future<void> setConsumableFullscreenZoneIds(List<String> zoneIds) async {
+    _requireIOS('setConsumableFullscreenZoneIds');
+    _checkInitialization('setConsumableFullscreenZoneIds');
+    await _invoke('setConsumableFullscreenZoneIds', {'zoneIds': zoneIds});
+  }
+
+  /// iOS 전용 배열 기반 배너 존 아이디 설정. **iOS 전용.**
+  static Future<void> setConsumableBannerZoneIds(List<String> zoneIds) async {
+    _requireIOS('setConsumableBannerZoneIds');
+    _checkInitialization('setConsumableBannerZoneIds');
+    await _invoke('setConsumableBannerZoneIds', {'zoneIds': zoneIds});
+  }
+
+  // ── 기타 진단/설정 (Android/iOS 공통 또는 편중) ───────────────────────
+
+  /// 현재 앱이 Luckieverse 콘텐츠를 노출해야 하는 상태인지 여부. **Android 전용.**
+  static Future<bool> getShouldExposeContent() async {
+    _requireAndroid('getShouldExposeContent');
+    _checkInitialization('getShouldExposeContent');
+    final result = await _invokeRaw('getShouldExposeContent');
+    if (result is! bool) {
+      throw Exception(
+        'LuckieverseFlutter.getShouldExposeContent: unexpected return type ${result.runtimeType}',
+      );
+    }
+    return result;
+  }
+
+  /// 마지막으로 저장된 SDK 정보 문자열(버전/초기화 시각 등)을 반환합니다.
+  /// 초기화 전이거나 저장된 값이 없으면 `null`을 반환할 수 있습니다. **Android 전용.**
+  static Future<String?> getSDKInfo() async {
+    _requireAndroid('getSDKInfo');
+    _checkInitialization('getSDKInfo');
+    final result = await _invokeRaw('getSDKInfo');
+    if (result != null && result is! String) {
+      throw Exception(
+        'LuckieverseFlutter.getSDKInfo: unexpected return type ${result.runtimeType}',
+      );
+    }
+    return result as String?;
+  }
+
+  /// 참여형 콘텐츠의 랜딩 URL을 조회합니다. **Android 전용.**
+  ///
+  /// ⚠️ **경고: 현재 네이티브 SDK가 개발 서버를 하드코딩하고 있습니다.**
+  /// 네이티브 `Luckieverse.kt`의 이 API 구현이 `https://luckybite-dev.adop.co.kr`
+  /// (개발 서버)로 요청을 보내도록 하드코딩되어 있으며, 네이티브 주석 자체가
+  /// "실제 API 서버 주소로 변경 필요"라고 미완성임을 밝히고 있습니다. 이 요청에는
+  /// `X-App-Key`(앱 키)와 `X-User-Key`(사용자 ID)가 헤더로 함께 전송되므로,
+  /// **네이티브 SDK가 프로덕션 서버로 전환되기 전까지 프로덕션 앱에서 호출하지
+  /// 마세요.**
+  ///
+  /// ⚠️ **경고: 네트워크 실패 시 빈 문자열이 반환될 수 있습니다.**
+  /// 네이티브 `NetworkManager.post`는 예외를 삼키고 HTTP 실패 시에도 빈 문자열을
+  /// 반환하므로, 이 메서드는 결과가 빈 문자열이면 [Exception]을 던집니다. 호출
+  /// 측에서 이 예외를 네트워크/서버 실패로 간주하고 처리해야 합니다.
+  static Future<String> getContentLandingUrl(String contentsId) async {
+    _requireAndroid('getContentLandingUrl');
+    _checkInitialization('getContentLandingUrl');
+    final result = await _invokeRaw('getContentLandingUrl', {'contentsId': contentsId});
+    if (result is! String) {
+      throw Exception(
+        'LuckieverseFlutter.getContentLandingUrl: unexpected return type ${result.runtimeType}',
+      );
+    }
+    if (result.isEmpty) {
+      throw Exception(
+        'LuckieverseFlutter.getContentLandingUrl: native가 빈 문자열을 반환했습니다 '
+        '(네트워크 실패 또는 서버 오류 가능성 — NetworkManager.post는 실패 시에도 '
+        '빈 문자열을 반환합니다).',
+      );
+    }
+    return result;
+  }
+
+  /// 게임(가위바위보 등) 전용 앱키를 갱신합니다.
+  static Future<void> updateGameAppKey(String appKey) async {
+    _checkInitialization('updateGameAppKey');
+    await _invoke('updateGameAppKey', {'appKey': appKey});
+  }
+
+  /// 배너 광고 디버그 모드를 활성화/비활성화합니다.
+  static Future<void> enableBannerDebug(bool enable) async {
+    _checkInitialization('enableBannerDebug');
+    await _invoke('enableBannerDebug', {'enable': enable});
+  }
+
+  /// 테스트 목적으로 전면 광고를 강제로 실패시킵니다.
+  /// (Android: `enableMakeFullScreenAdFailForTest`, iOS: `enableFullScreenAdFailForTest`)
+  static Future<void> enableFullScreenAdFailForTest(bool enable) async {
+    _checkInitialization('enableFullScreenAdFailForTest');
+    await _invoke('enableFullScreenAdFailForTest', {'enable': enable});
+  }
+
+  /// iOS 전용: 배너 광고의 최대 높이(포인트)를 갱신합니다. **iOS 전용.**
+  static Future<void> updateBannerHeightLimit(double height) async {
+    _requireIOS('updateBannerHeightLimit');
+    _checkInitialization('updateBannerHeightLimit');
+    await _invoke('updateBannerHeightLimit', {'height': height});
+  }
+
+  /// iOS 전용: WKWebView 인스펙터(Safari 원격 디버깅) 활성화 여부를 설정합니다. **iOS 전용.**
+  ///
+  /// ⚠️ **경고**: 프로덕션에서 활성화하면 웹뷰 내부(세션 토큰 등 민감 정보 포함 가능)가
+  /// Safari 웹 인스펙터를 통해 외부에 노출될 수 있습니다. 프로덕션 빌드에서는
+  /// 활성화하지 마세요.
+  static Future<void> updateWebviewInspector(bool enabled) async {
+    _requireIOS('updateWebviewInspector');
+    _checkInitialization('updateWebviewInspector');
+    await _invoke('updateWebviewInspector', {'enabled': enabled});
+  }
+
+  // ── 플로팅 버튼 (iOS 전용) ───────────────────────────────────────────
+  // iOS 네이티브에서 현재 최상단 ViewController를 자동으로 획득해 붙인다.
+
+  /// **iOS 전용.**
+  static Future<void> showFloatingButton() async {
+    _requireIOS('showFloatingButton');
+    _checkInitialization('showFloatingButton');
+    await _invoke('showFloatingButton');
+  }
+
+  /// **iOS 전용.**
+  static Future<void> hideFloatingButton() async {
+    _requireIOS('hideFloatingButton');
+    _checkInitialization('hideFloatingButton');
+    await _invoke('hideFloatingButton');
+  }
+
+  // ── 로컬 푸시 (iOS 전용) ─────────────────────────────────────────────
+  // Android 네이티브 SDK는 이 기능이 주석 처리되어 비활성화되어 있다.
+
+  /// **iOS 전용.**
+  static Future<void> setLuckieverseLocalPush(LuckieverseLocalPush push) async {
+    _requireIOS('setLuckieverseLocalPush');
+    _checkInitialization('setLuckieverseLocalPush');
+    await _invoke('setLuckieverseLocalPush', push.toMap());
+  }
+
+  /// **iOS 전용.**
+  static Future<void> cancelLuckieverseLocalPush(LuckieverseLocalPushType pushType) async {
+    _requireIOS('cancelLuckieverseLocalPush');
+    _checkInitialization('cancelLuckieverseLocalPush');
+    await _invoke('cancelLuckieverseLocalPush', {'pushType': pushType.value});
+  }
+
+  // ── 화면 오픈 (Android/iOS 공통) ─────────────────────────────────────
+
+  static Future<void> openLuckieverseMyPage() async {
+    _checkInitialization('openLuckieverseMyPage');
+    await _invoke('openLuckieverseMyPage');
+  }
+
+  static Future<void> openLuckieverseSajuInfo() async {
+    _checkInitialization('openLuckieverseSajuInfo');
+    await _invoke('openLuckieverseSajuInfo');
+  }
+
+  static Future<void> openLuckieversePhoneAuth() async {
+    _checkInitialization('openLuckieversePhoneAuth');
+    await _invoke('openLuckieversePhoneAuth');
+  }
+
+  static Future<void> openLuckieversePointHistory() async {
+    _checkInitialization('openLuckieversePointHistory');
+    await _invoke('openLuckieversePointHistory');
+  }
+
+  static Future<void> openLuckieverseProductHistory() async {
+    _checkInitialization('openLuckieverseProductHistory');
+    await _invoke('openLuckieverseProductHistory');
+  }
+
+  /// [id]는 두 플랫폼 모두 필수입니다.
+  static Future<void> openLuckieverseProductHistoryDetail(String id) async {
+    _checkInitialization('openLuckieverseProductHistoryDetail');
+    await _invoke('openLuckieverseProductHistoryDetail', {'id': id});
+  }
+
+  static Future<void> openLuckieverseFaq() async {
+    _checkInitialization('openLuckieverseFaq');
+    await _invoke('openLuckieverseFaq');
+  }
+
+  /// **플랫폼 비대칭 주의**: iOS 네이티브는 `id`가 필수 파라미터이지만
+  /// Android 네이티브는 `id`를 받지 않습니다(무시됨).
+  /// iOS에서 [id]를 생략(`null`)하면 [ArgumentError]가 발생합니다.
+  static Future<void> openLuckieverseFaqDetail({String? id}) async {
+    _checkInitialization('openLuckieverseFaqDetail');
+    if (_isIOS && id == null) {
+      throw ArgumentError.value(
+        id,
+        'id',
+        'openLuckieverseFaqDetail: iOS에서는 id가 필수입니다.',
+      );
+    }
+    await _invoke('openLuckieverseFaqDetail', {'id': id});
+  }
+
+  static Future<void> openLuckieverseInquiry() async {
+    _checkInitialization('openLuckieverseInquiry');
+    await _invoke('openLuckieverseInquiry');
+  }
+
+  static Future<void> openLuckieverseInquiryHistory() async {
+    _checkInitialization('openLuckieverseInquiryHistory');
+    await _invoke('openLuckieverseInquiryHistory');
+  }
+
+  /// [id]는 두 플랫폼 모두 필수입니다.
+  static Future<void> openLuckieverseInquiryHistoryDetail(String id) async {
+    _checkInitialization('openLuckieverseInquiryHistoryDetail');
+    await _invoke('openLuckieverseInquiryHistoryDetail', {'id': id});
+  }
+
+  static Future<void> openLuckieverseTermsAndPolicies() async {
+    _checkInitialization('openLuckieverseTermsAndPolicies');
+    await _invoke('openLuckieverseTermsAndPolicies');
+  }
+
+  /// **플랫폼 비대칭 주의**: iOS 네이티브는 `id`가 필수 파라미터이지만
+  /// Android 네이티브는 `id`를 받지 않습니다(무시됨).
+  /// iOS에서 [id]를 생략(`null`)하면 [ArgumentError]가 발생합니다.
+  static Future<void> openLuckieverseTermsAndPoliciesDetail({String? id}) async {
+    _checkInitialization('openLuckieverseTermsAndPoliciesDetail');
+    if (_isIOS && id == null) {
+      throw ArgumentError.value(
+        id,
+        'id',
+        'openLuckieverseTermsAndPoliciesDetail: iOS에서는 id가 필수입니다.',
+      );
+    }
+    await _invoke('openLuckieverseTermsAndPoliciesDetail', {'id': id});
+  }
+
+  static Future<void> openLuckieverseProductStore() async {
+    _checkInitialization('openLuckieverseProductStore');
+    await _invoke('openLuckieverseProductStore');
+  }
+
+  static Future<void> openLuckieverseProductStoreDetail() async {
+    _checkInitialization('openLuckieverseProductStoreDetail');
+    await _invoke('openLuckieverseProductStoreDetail');
+  }
+
+  static Future<void> openLuckieverseError() async {
+    _checkInitialization('openLuckieverseError');
+    await _invoke('openLuckieverseError');
+  }
+
+  static Future<void> openFaceReading() async {
+    _checkInitialization('openFaceReading');
+    await _invoke('openFaceReading');
+  }
+
+  static Future<void> checkGoogleAdmobWebviewAPI() async {
+    _checkInitialization('checkGoogleAdmobWebviewAPI');
+    await _invoke('checkGoogleAdmobWebviewAPI');
+  }
+
+  /// 이메일 앱을 엽니다. [toAddress]를 생략하면 각 네이티브 SDK의 기본 수신 주소로 연결됩니다.
+  /// (Android: `openEmail`, iOS: `openEmailApp`)
+  ///
+  /// [toAddress]에 개행(`\r`, `\n`) 또는 그 외 제어문자가 포함되어 있으면
+  /// 메일 헤더 인젝션 가능성을 막기 위해 [ArgumentError]를 던집니다.
+  static Future<void> openEmail({String? toAddress}) async {
+    _checkInitialization('openEmail');
+    if (toAddress != null && _containsControlCharacters(toAddress)) {
+      throw ArgumentError.value(
+        toAddress,
+        'toAddress',
+        'openEmail: toAddress에 개행/제어문자를 포함할 수 없습니다.',
+      );
+    }
+    await _invoke('openEmail', {'toAddress': toAddress});
+  }
+
+  /// 개행(`\r`, `\n`) 및 그 외 제어문자(0x00-0x1F, 0x7F) 포함 여부를 검사합니다.
+  static bool _containsControlCharacters(String value) {
+    for (final codeUnit in value.codeUnits) {
+      if (codeUnit <= 0x1F || codeUnit == 0x7F) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static Future<void> openLuckieverseGame() async {
+    _checkInitialization('openLuckieverseGame');
+    await _invoke('openLuckieverseGame');
+  }
+
+  static Future<void> openLuckieverseGameByPush(String pushKey) async {
+    _checkInitialization('openLuckieverseGameByPush');
+    await _invoke('openLuckieverseGameByPush', {'pushKey': pushKey});
+  }
+
   /// 전면(fullscreen) 광고 로드 타임아웃을 설정합니다. 기본값 40초.
   /// 유효 범위(Android: 1초~600초, iOS: 1초 이상 상한 없음)를 벗어난 값은
   /// 예외 없이 조용히 무시되고 이전 값이 유지됩니다.
@@ -268,6 +835,7 @@ class LuckieverseFlutter {
     'onAdNoFill',
     'onAdBlockUser',
     'onAdClose',
+    'onAdShowFail',
   };
 
   static void _ensureRvCallbackListener() {
@@ -399,6 +967,16 @@ class LuckieverseFlutter {
               _adLog('[showRVWithDynamicZoneID] onAdClose 콜백 예외: $e\n$st', warning: true);
             }
             break;
+          case 'onAdShowFail':
+            try {
+              final adError = dataMap != null
+                  ? LuckieverseAdError.fromMap(dataMap)
+                  : const LuckieverseAdError(code: -1);
+              callbacks.onAdShowFail?.call(adError);
+            } catch (e, st) {
+              _adLog('[showRVWithDynamicZoneID] onAdShowFail 콜백 예외: $e\n$st', warning: true);
+            }
+            break;
         }
       },
       onError: (error) {
@@ -421,15 +999,26 @@ class LuckieverseFlutter {
   /// - [onAdNoFill]    : 광고 인벤토리 없음 시 호출.
   /// - [onAdBlockUser] : 광고 차단 사용자 처리 시 호출.
   /// - [onAdClose]     : 광고 화면이 닫힐 때 호출 ([LuckieverseAdInfo] 포함, 사이클 최종 종료).
+  /// - [onAdShowFail]  : 광고 show 단계에서 실패했을 때 호출 ([LuckieverseAdError] 포함).
+  ///
+  /// **주의: [onAdShowFail]은 등록 여부에 따라 native 등록 자체가 조건부로 이뤄짐**
+  /// [onAdShowFail]을 넘기지 않으면(`null`) native의 onAdShowFail 파라미터 자체가
+  /// 등록되지 않는다. 이는 native(Android `AdManager.kt`)가 "host가 onShowFailAd를
+  /// 등록하지 않으면 onLoadFailAd 폴백을 발화한다"는 하위 호환 설계를 갖고 있기 때문 —
+  /// 무조건 등록해버리면 [onLoadFail]만 등록한 기존 호출부가 show 실패 통지를 아예
+  /// 받지 못하는 회귀가 생긴다. 즉 [onAdShowFail]을 등록하지 않은 기존 호출부는
+  /// show 실패 시 대신 [onLoadFail]이 발화된다(신규 동작이 아니라 native의 기존
+  /// 폴백 설계가 그대로 보존되는 것).
   ///
   /// **lifecycle 콜백 (추가)**:
   /// - [onAdComplete]  : 보상 조건 달성(광고 완시청) 시 호출 ([LuckieverseAdInfo] 포함). onAdClose 이전에 발화.
   ///
   /// **주의: 콜백 매핑은 시간 기반으로 만료되지 않음**
   /// callId에 대한 콜백 매핑은 오직 native(안드로이드)로부터 terminal 콜백
-  /// ([onLoadFail], [onAdNoFill], [onAdBlockUser], [onAdClose])이 도착했을 때만
-  /// 정리된다. native가 응답을 영영 주지 않는 극단적 케이스에서는 해당 콜백이
-  /// 영원히 발화되지 않을 수 있다(호출 측에서 필요 시 자체 타임아웃을 구현해야 함).
+  /// ([onLoadFail], [onAdNoFill], [onAdBlockUser], [onAdClose], [onAdShowFail])이
+  /// 도착했을 때만 정리된다. native가 응답을 영영 주지 않는 극단적 케이스에서는
+  /// 해당 콜백이 영원히 발화되지 않을 수 있다(호출 측에서 필요 시 자체 타임아웃을
+  /// 구현해야 한다).
   ///
   /// **주의: native 호출 실패 시 에러 처리**
   /// native 호출(`_invoke`)이 실패했을 때, [onLoadFail] 콜백이 등록되어 있다면
@@ -447,6 +1036,7 @@ class LuckieverseFlutter {
     void Function(LuckieverseAdInfo)? onAdClick,
     VoidCallback? onAdSkip,
     void Function(LuckieverseAdInfo)? onAdClose,
+    void Function(LuckieverseAdError)? onAdShowFail,
   }) async {
     _adLog('[showRVWithDynamicZoneID] zoneID=$zoneID, isInitialized=$_isInitializeCompleted');
     _checkInitialization('showRVWithDynamicZoneID');
@@ -454,7 +1044,7 @@ class LuckieverseFlutter {
     final hasCallbacks = onLoadFail != null || onAdComplete != null ||
         onAdNoFill != null || onAdBlockUser != null ||
         onAdLoad != null || onAdShow != null || onAdClick != null ||
-        onAdSkip != null || onAdClose != null;
+        onAdSkip != null || onAdClose != null || onAdShowFail != null;
 
     if (hasCallbacks) {
       _ensureRvCallbackListener();
@@ -469,13 +1059,22 @@ class LuckieverseFlutter {
         onAdClick: onAdClick,
         onAdSkip: onAdSkip,
         onAdClose: onAdClose,
+        onAdShowFail: onAdShowFail,
       );
       _rvCallbacks[callId] = entry;
       _adLog('[showRVWithDynamicZoneID] callId=$callId 생성됨');
       try {
         await _invoke(
           'showRVWithDynamicZoneID',
-          {'zoneID': zoneID, 'callId': callId},
+          {
+            'zoneID': zoneID,
+            'callId': callId,
+            // native의 onAdShowFail 파라미터를 호출자가 실제로 등록한 경우에만
+            // 등록하기 위한 플래그. 무조건 등록하면 host가 onLoadFail만 등록한
+            // 구버전 호출부에서 native의 onLoadFail 폴백 발화가 스킵되는 회귀가
+            // 생긴다 (네이티브 AdManager.kt의 hostOnShowFailAd == null 폴백 설계 참고).
+            'hasOnAdShowFail': onAdShowFail != null,
+          },
           true,
         );
       } catch (e) {
@@ -537,7 +1136,26 @@ class LuckieverseFlutter {
       throw Exception('LuckieverseFlutter.$method failed: ${e.code} ${e.message}');
     }
   }
-  
+
+  /// 반환값이 있는 네이티브 메서드 호출용. [_invoke]와 달리 native의 반환값을
+  /// 그대로(dynamic) 돌려준다 — 타입 검증은 각 public getter에서 수행한다.
+  static Future<dynamic> _invokeRaw(
+    String method, [
+    Map<String, dynamic>? arguments,
+  ]) async {
+    _log('[_invoke] method=$method, arguments=$arguments (반환값 기대)');
+    try {
+      final result = await _channel.invokeMethod(method, arguments);
+      _log('[_invoke] $method 성공, result=$result');
+      return result;
+    } on PlatformException catch (e) {
+      _log(
+        '[_invoke] PlatformException 발생: code=${e.code}, message=${e.message}, details=${e.details}',
+      );
+      throw Exception('LuckieverseFlutter.$method failed: ${e.code} ${e.message}');
+    }
+  }
+
   /// 초기화 상태를 확인하고 경고 로그 출력
   static void _checkInitialization(String methodName) {
     if (!_isInitializeCalled) {
@@ -594,6 +1212,7 @@ class _RVCallbacks {
   final void Function(LuckieverseAdInfo)? onAdClick;
   final VoidCallback? onAdSkip;
   final void Function(LuckieverseAdInfo)? onAdClose;
+  final void Function(LuckieverseAdError)? onAdShowFail;
 
   _RVCallbacks({
     this.onLoadFail,
@@ -605,5 +1224,6 @@ class _RVCallbacks {
     this.onAdClick,
     this.onAdSkip,
     this.onAdClose,
+    this.onAdShowFail,
   });
 }

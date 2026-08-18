@@ -44,6 +44,13 @@ android {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    // libs/luckieverse.jar는 raw jar 의존이라 전이 의존성이 해석되지 않는다. 그런데
+    // 네이티브 NetworkManager가 kotlinx.coroutines(withContext(Dispatchers.IO))를 사용한다.
+    // 검수 결과 kotlinx-coroutines-android:1.7.1이 io.flutter:flutter_embedding_debug ->
+    // androidx.lifecycle:lifecycle-common 경로로 우연히 딸려오는 전이 의존성으로만
+    // classpath에 존재함이 확인됐다 (Flutter 임베딩 구성이 바뀌면 NoClassDefFoundError로
+    // 조용히 깨질 수 있음). 우연에 의존하지 않도록 현재 해석되는 버전(1.7.1)을 명시한다.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
     // Include local JAR file for compilation and runtime
     implementation files('libs/luckieverse.jar')
 }
