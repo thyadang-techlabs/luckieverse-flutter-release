@@ -557,6 +557,12 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
         Luckieverse.instance().openLuckieverseProductStoreDetail(activity)
         result.success(null)
       }
+      "openLuckieverseStore" -> {
+        val activity = activityBinding?.activity
+            ?: return result.error("no_activity", "Activity is not attached", null)
+        Luckieverse.instance().openLuckieverseStore(activity)
+        result.success(null)
+      }
       "openLuckieverseError" -> {
         val activity = activityBinding?.activity
             ?: return result.error("no_activity", "Activity is not attached", null)

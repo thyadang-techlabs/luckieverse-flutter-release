@@ -11,7 +11,7 @@ dependencies:
   luckieverse_flutter:
     git:
       url: <THIS_REPO_URL>
-      ref: v2.3.0
+      ref: v2.5.0
 ```
 
 그런 다음 실행:
@@ -24,6 +24,10 @@ flutter pub get
 
 iOS, Android 모두 별도 설정 없이 사용 가능합니다.
 네이티브 의존성은 자동으로 해결됩니다.
+
+요구사항:
+- iOS 15.0 이상 (2.5.0부터, BREAKING)
+- Android compileSdk 36 이상 / Kotlin 2.2.20 이상
 
 ## 사용법
 
@@ -42,4 +46,4 @@ await LuckieverseFlutter.openLuckieverseMain();
 
 ## 버전
 
-현재 버전: **v2.3.0**
+현재 버전: **v2.5.0**

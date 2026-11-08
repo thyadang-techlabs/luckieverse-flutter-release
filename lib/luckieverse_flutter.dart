@@ -766,6 +766,13 @@ class LuckieverseFlutter {
     await _invoke('openLuckieverseGame');
   }
 
+  /// 스토어 화면으로 바로 진입합니다. **Android 전용.** (네이티브 SDK v2.1.27에서 추가)
+  static Future<void> openLuckieverseStore() async {
+    _requireAndroid('openLuckieverseStore');
+    _checkInitialization('openLuckieverseStore');
+    await _invoke('openLuckieverseStore');
+  }
+
   static Future<void> openLuckieverseGameByPush(String pushKey) async {
     _checkInitialization('openLuckieverseGameByPush');
     await _invoke('openLuckieverseGameByPush', {'pushKey': pushKey});

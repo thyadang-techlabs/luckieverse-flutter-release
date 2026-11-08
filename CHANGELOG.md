@@ -1,3 +1,15 @@
+## 2.5.0
+
+* 네이티브 SDK를 Android v2.1.25 → v2.1.27, iOS Luckieverse 2.8.2 → 2.9.1로 갱신.
+* **BREAKING (iOS)**: 최소 지원 버전을 14.0 → 15.0으로 상향. Luckieverse 2.9.1 podspec의 deployment target이 15.0이며, `luckieverse_flutter.podspec`의 `s.platform`과 `Luckieverse` 의존성(`2.9.1`)을 이에 맞춤. 호스트 앱 Podfile의 `platform :ios`도 `'15.0'` 이상이어야 한다.
+* iOS: Luckieverse 2.9.1 podspec은 `BidmadSDK` / `OpenBiddingHelper` / `BidmadGoogleGDPRAdapter` 의존성을 더 이상 7.0.1로 고정하지 않음(2.8.2는 `= 7.0.1` 핀). `example/ios`에서 Podfile.lock을 지우고 `pod install`을 다시 실행한 결과, 기존 어댑터 핀(`BidmadSDK < 7.1.0` 요구)과 함께 `BidmadSDK 7.0.1`로 해석됨을 확인(trunk에는 7.1.0이 존재하지만 어댑터 제약으로 제외됨). 따라서 어댑터 버전은 변경하지 않음. 다만 7.1.0 이상으로 조용히 해석되는 것을 막기 위해 `luckieverse_flutter.podspec`에 `BidmadSDK` / `OpenBiddingHelper` / `BidmadGoogleGDPRAdapter`를 각각 `~> 7.0.1`(>= 7.0.1, < 7.1.0)로 제한하는 의존성을 추가함.
+* iOS 공개 API 비교(2.8.2 ↔ 2.9.1 `.swiftinterface`, 모듈 표기 `Swift.` → `Swift::` 차이 제외): 브릿지가 사용하는 시그니처 변경 없음. 바뀐 것은 SwiftUI용 `LuckieverseFloatingButton.Context` 타입 경로뿐이며 브릿지에서 사용하지 않음(`flutter build ios --no-codesign --debug` 성공으로 확인).
+* Android 공개 API 비교(v2.1.25 ↔ v2.1.27 `classes.jar`를 `javap -p`로 비교): `Luckieverse.openLuckieverseStore(Activity)` 추가 외 시그니처 변경 없음(내부 `appendPushKeyAndLanding$Luckieverse_release` 추가 제외). Kotlin metadata 버전은 2.3.0으로 2.1.25와 동일.
+* **Android 전용 신규 API**: `openLuckieverseStore()` — 스토어 화면으로 바로 진입(네이티브가 `landing=store`로 WebViewActivity 실행). iOS 네이티브 2.9.1에는 대응 API가 없어 iOS에서 호출 시 `UnsupportedError`. 단위 테스트 3개 추가(정상 호출, iOS `UnsupportedError`이며 native 미호출, native `PlatformException` 전파).
+* 참고(미검증 범위): 네이티브 Android SDK 원본은 이번 버전부터 compileSdk/targetSdk 37로 빌드되나, AAR 메타데이터의 `minCompileSdk`는 1이고 플러그인의 `compileSdk`/`targetSdk`는 36 그대로이며 이 설정으로 `example`의 `flutter build apk --debug`가 성공함을 확인. 호스트 앱 compileSdk 요구 하한 변화는 별도로 검증하지 않음.
+* `example`: `Runner` 및 `Podfile`의 iOS deployment target을 15.0으로 상향하고, Xcode 27.2가 deployment target 15.0 미만인 Pods 타깃을 "Target Integrity" 오류로 거부하는 것을 확인해 `post_install`에서 Pods 타깃을 15.0으로 올림(예제 앱 전용 변경이며 플러그인 동작에는 영향 없음).
+* 문서: `GUIDE.md` / `README_DEVELOPER_GUIDE.md`의 iOS 최소 버전과 Xcode 검증 정보를 갱신하고 `openLuckieverseStore()`를 Android 전용 API 표에 추가.
+
 ## 2.3.0
 
 * 네이티브 SDK(Android v2.1.25 / iOS Luckieverse 2.8.2)가 노출하는 공개 API 중 브릿지에 없던 항목을 대거 추가. 기존 17개 API의 시그니처/동작은 변경하지 않음(순수 추가, minor 버전업).
