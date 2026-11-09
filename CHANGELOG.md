@@ -1,3 +1,10 @@
+## 2.5.1
+
+* 네이티브 iOS SDK를 Luckieverse 2.9.1 → 2.9.2로 갱신(`luckieverse_flutter.podspec`의 `Luckieverse` 의존성 `2.9.2`). Android는 v2.1.27 그대로(변경 없음).
+* iOS 공개 API 비교(2.9.1 ↔ 2.9.2 `.swiftinterface`, `Swift::` → `Swift.` 모듈 표기 차이 제외): 시그니처 변경/추가/삭제 없음. 유일한 차이는 SwiftUI용 `LuckieverseFloatingButton.Context`의 타입 경로 표기이며 브릿지에서 사용하지 않음. 컴파일러 버전(Apple Swift 6.4.2)과 deployment target(iOS 15.0)도 동일. 따라서 브릿지 코드/Dart API 변경 없음(패치 버전업).
+* 2.9.2 podspec도 `BidmadSDK` / `OpenBiddingHelper` / `BidmadGoogleGDPRAdapter`를 고정하지 않으며 플러그인의 `~> 7.0.1` 제한은 그대로 유지.
+* 문서: `README_DEVELOPER_GUIDE.md`의 iOS 네이티브 버전 언급을 2.9.2로 갱신.
+
 ## 2.5.0
 
 * 네이티브 SDK를 Android v2.1.25 → v2.1.27, iOS Luckieverse 2.8.2 → 2.9.1로 갱신.
