@@ -557,6 +557,12 @@ class LuckieverseFlutterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
         Luckieverse.instance().openLuckieverseProductStoreDetail(activity)
         result.success(null)
       }
+      "setConsumableFullscreenZoneIds" -> {
+        val zoneIds = call.argument<List<String>>("zoneIds")
+            ?: return result.error("bad_args", "Missing zoneIds", null)
+        Luckieverse.instance().setConsumableFullscreenZoneIds(zoneIds)
+        result.success(null)
+      }
       "openLuckieverseStore" -> {
         val activity = activityBinding?.activity
             ?: return result.error("no_activity", "Activity is not attached", null)

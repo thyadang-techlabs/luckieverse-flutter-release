@@ -331,8 +331,8 @@ class LuckieverseFlutter {
   }
 
   // ── 광고 존 아이디 (Android 전용, 개별 setter/getter) ─────────────────
-  // iOS는 setConsumableFullscreenZoneIds/setConsumableBannerZoneIds(배열)로
-  // 모델이 완전히 달라 1:1로 합치지 않고 각각 노출한다.
+  // 전면 광고 배열 setter(setPreloadFullscreenZoneIds)는 Android/iOS 공통이고,
+  // 배너 배열 setter(setConsumableBannerZoneIds)는 iOS 전용이다.
 
   @Deprecated(
     '네이티브 SDK에서 더 이상 사용되지 않는 API입니다. 아무 동작도 하지 않습니다(no-op). '
@@ -472,13 +472,18 @@ class LuckieverseFlutter {
     return result;
   }
 
-  /// iOS 전용 배열 기반 존 아이디 설정. Android는 개별 setter
-  /// (`setFullScreenAdZoneIdForSaju` 등)를 사용해야 합니다. **iOS 전용.**
-  static Future<void> setConsumableFullscreenZoneIds(List<String> zoneIds) async {
-    _requireIOS('setConsumableFullscreenZoneIds');
-    _checkInitialization('setConsumableFullscreenZoneIds');
+  /// 전면 광고 존 아이디를 미리 등록(프리로드)합니다. **Android/iOS 공통.**
+  /// 네이티브 `setConsumableFullscreenZoneIds`를 호출합니다.
+  /// (Android는 네이티브 SDK v2.1.30에서 추가된 API)
+  static Future<void> setPreloadFullscreenZoneIds(List<String> zoneIds) async {
+    _checkInitialization('setPreloadFullscreenZoneIds');
     await _invoke('setConsumableFullscreenZoneIds', {'zoneIds': zoneIds});
   }
+
+  /// [setPreloadFullscreenZoneIds]의 deprecated 별칭. 2.5.x 호환을 위해 유지됩니다.
+  @Deprecated('setPreloadFullscreenZoneIds를 사용하세요.')
+  static Future<void> setConsumableFullscreenZoneIds(List<String> zoneIds) =>
+      setPreloadFullscreenZoneIds(zoneIds);
 
   /// iOS 전용 배열 기반 배너 존 아이디 설정. **iOS 전용.**
   static Future<void> setConsumableBannerZoneIds(List<String> zoneIds) async {

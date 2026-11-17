@@ -1,3 +1,11 @@
+## 2.6.0
+
+* 네이티브 Android SDK를 v2.1.27 → v2.1.30으로 갱신(`android/libs/Luckieverse.aar` 교체, `luckieverse.jar`는 새 AAR의 `classes.jar`로 교체). iOS는 Luckieverse 2.9.2 그대로(변경 없음).
+* Android 공개 API 비교(v2.1.27 ↔ v2.1.30 `classes.jar`를 `javap`로 비교): `Luckieverse.setConsumableFullscreenZoneIds(List<String>)`(및 `AdManager`의 동명 메서드) 추가 외 기존 public 시그니처 변경/삭제 없음. 나머지는 `$Luckieverse_release` internal 및 private 변경.
+* **Android 지원 확대 및 API 이름 변경**: 새 공통 API `setPreloadFullscreenZoneIds(List<String>)`를 추가(Android/iOS 공통, `zoneIds` 키, 누락 시 `bad_args`는 iOS와 동일). 메서드 채널 이름은 기존 `setConsumableFullscreenZoneIds` 그대로이며 네이티브(Kotlin/Swift) 코드는 변경 없음. 기존 `setConsumableFullscreenZoneIds`는 2.5.x에 공개된 API라 삭제하지 않고 `@Deprecated` 별칭(새 함수에 위임)으로 유지한다. 기존 iOS 동작은 그대로이며, Android에서 호출하면 더 이상 `UnsupportedError`를 던지지 않는다. `setConsumableBannerZoneIds`는 Android에 대응 API가 없어 iOS 전용 유지.
+* 테스트: `setPreloadFullscreenZoneIds`에 대해 Android/iOS 양쪽에서 인자 전달, 빈 리스트, `initialize()` 미호출 상태에서도 예외 없이 네이티브로 전달됨, `PlatformException` 전파를 검증하고, deprecated 별칭이 같은 채널 호출/인자로 위임되는지 확인하며, `setConsumableBannerZoneIds`의 Android `UnsupportedError`를 확인.
+* 문서: `GUIDE.md`의 Android 네이티브 버전(v2.1.30) 및 API 표 갱신, `README_DEVELOPER_GUIDE.md`의 Android 네이티브 버전 문구 갱신.
+
 ## 2.5.1
 
 * 네이티브 iOS SDK를 Luckieverse 2.9.1 → 2.9.2로 갱신(`luckieverse_flutter.podspec`의 `Luckieverse` 의존성 `2.9.2`). Android는 v2.1.27 그대로(변경 없음).
